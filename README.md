@@ -2,7 +2,7 @@
 
 **[English](README.md)** | **[繁體中文](README.zh-TW.md)**
 
-> **TL;DR** — One-command ROS 1 Kinetic containerized dev environment based on `osrf/ros` desktop-full image (x86_64 only). Auto-detects UID/GID/GPU, supports X11 GUI forwarding, multi-stage build with smoke test verification.
+> **TL;DR** — One-command ROS 1 Kinetic containerized dev environment based on `osrf/ros` desktop-full image (x86_64 only). Auto-detects UID/GID, supports X11 GUI forwarding, multi-stage build with smoke test verification.
 >
 > ```bash
 > ./build.sh && ./run.sh
@@ -28,9 +28,8 @@
 - **Multi-stage build**: sys → base → devel / test / runtime, choose as needed
 - **Smoke Test**: Bats tests run automatically during build to verify environment
 - **Docker Compose**: single `compose.yaml` manages all targets
-- **Auto-detection**: `setup.sh` auto-detects UID/GID/GPU/workspace, generates `.env`
+- **Auto-detection**: `setup.sh` auto-detects UID/GID/workspace, generates `.env`
 - **Modular config**: shell config managed via [docker_setup_helper](https://github.com/ycpss91255-docker/docker_setup_helper) subtree
-- **GPU support**: auto-detects NVIDIA Container Toolkit
 - **X11 forwarding**: supports GUI applications (RViz, Terminator, etc.)
 
 > **Note**: This image uses `osrf/ros` which only supports **x86_64**. For ARM/Raspberry Pi, use [ros_kinetic](https://github.com/ycpss91255-docker/ros_kinetic) instead.

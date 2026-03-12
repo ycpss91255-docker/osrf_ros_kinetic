@@ -2,7 +2,7 @@
 
 **[English](README.md)** | **[繁體中文](README.zh-TW.md)**
 
-> **TL;DR** — 一鍵建置基於 `osrf/ros` desktop-full 映像的 ROS 1 Kinetic 容器化開發環境（僅支援 x86_64）。自動偵測 UID/GID/GPU，支援 X11 GUI 轉發，多階段建置含 smoke test 驗證。
+> **TL;DR** — 一鍵建置基於 `osrf/ros` desktop-full 映像的 ROS 1 Kinetic 容器化開發環境（僅支援 x86_64）。自動偵測 UID/GID，支援 X11 GUI 轉發，多階段建置含 smoke test 驗證。
 >
 > ```bash
 > ./build.sh && ./run.sh
@@ -28,9 +28,8 @@
 - **多階段建置**：sys → base → devel / test / runtime，按需求選擇
 - **Smoke Test**：build 時自動跑 Bats 測試驗證環境正確性
 - **Docker Compose**：一個 `compose.yaml` 管理所有 target
-- **自動偵測**：`setup.sh` 自動偵測 UID/GID/GPU/workspace，產生 `.env`
+- **自動偵測**：`setup.sh` 自動偵測 UID/GID/workspace，產生 `.env`
 - **模組化設定**：shell config 透過 [docker_setup_helper](https://github.com/ycpss91255-docker/docker_setup_helper) subtree 管理
-- **GPU 支援**：自動偵測 NVIDIA Container Toolkit
 - **X11 轉發**：支援 GUI 應用程式（RViz、Terminator 等）
 
 > **注意**：此映像使用 `osrf/ros`，僅支援 **x86_64**。如需 ARM/Raspberry Pi 支援，請使用 [ros_kinetic](https://github.com/ycpss91255-docker/ros_kinetic)。
