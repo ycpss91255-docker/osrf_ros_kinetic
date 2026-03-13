@@ -15,12 +15,32 @@ set -o allexport
 source "${FILE_PATH}/.env"
 set +o allexport
 
-# Run target: devel (default), runtime
-TARGET="${1:-devel}"
+# Parse arguments
+DETACH=false
+TARGET="devel"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -d|--detach)
+            DETACH=true
+            shift
+            ;;
+        *)
+            TARGET="$1"
+            shift
+            ;;
+    esac
+done
 
 # Allow X11 forwarding
 xhost "+SI:localuser:${USER_NAME}" >/dev/null 2>&1 || true
 
-docker compose -f "${FILE_PATH}/compose.yaml" \
-    --env-file "${FILE_PATH}/.env" \
-    run --rm "${TARGET}"
+if [[ "${DETACH}" == true ]]; then
+    docker compose -f "${FILE_PATH}/compose.yaml" \
+        --env-file "${FILE_PATH}/.env" \
+        up -d "${TARGET}"
+else
+    docker compose -f "${FILE_PATH}/compose.yaml" \
+        --env-file "${FILE_PATH}/.env" \
+        run --rm "${TARGET}"
+fi
