@@ -4,6 +4,21 @@ set -euo pipefail
 
 FILE_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
+usage() {
+    cat >&2 <<'EOF'
+Usage: ./run.sh [-h] [-d|--detach] [TARGET]
+
+Options:
+  -h, --help     Show this help
+  -d, --detach   Run in background (docker compose up -d)
+
+Targets:
+  devel    Development environment (default)
+  runtime  Minimal runtime
+EOF
+    exit 0
+}
+
 # Generate .env if not exists
 if [[ ! -f "${FILE_PATH}/.env" ]]; then
     "${FILE_PATH}/docker_setup_helper/src/setup.sh" --base-path "${FILE_PATH}"
@@ -21,6 +36,9 @@ TARGET="devel"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        -h|--help)
+            usage
+            ;;
         -d|--detach)
             DETACH=true
             shift
