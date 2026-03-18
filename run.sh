@@ -6,11 +6,12 @@ FILE_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 
 usage() {
     cat >&2 <<'EOF'
-Usage: ./run.sh [-h] [-d|--detach] [TARGET]
+Usage: ./run.sh [-h] [-d|--detach] [--no-env] [TARGET]
 
 Options:
   -h, --help     Show this help
   -d, --detach   Run in background (docker compose up -d)
+  --no-env       Skip .env regeneration
 
 Targets:
   devel    Development environment (default)
@@ -19,18 +20,8 @@ EOF
     exit 0
 }
 
-# Generate .env if not exists
-if [[ ! -f "${FILE_PATH}/.env" ]]; then
-    "${FILE_PATH}/docker_setup_helper/src/setup.sh" --base-path "${FILE_PATH}"
-fi
-
-# Load .env for xhost
-set -o allexport
-# shellcheck disable=SC1091
-source "${FILE_PATH}/.env"
-set +o allexport
-
 # Parse arguments
+SKIP_ENV=false
 DETACH=false
 TARGET="devel"
 
@@ -43,12 +34,27 @@ while [[ $# -gt 0 ]]; do
             DETACH=true
             shift
             ;;
+        --no-env)
+            SKIP_ENV=true
+            shift
+            ;;
         *)
             TARGET="$1"
             shift
             ;;
     esac
 done
+
+# Generate / refresh .env
+if [[ "${SKIP_ENV}" == false ]]; then
+    "${FILE_PATH}/docker_setup_helper/src/setup.sh" --base-path "${FILE_PATH}"
+fi
+
+# Load .env for xhost
+set -o allexport
+# shellcheck disable=SC1091
+source "${FILE_PATH}/.env"
+set +o allexport
 
 # Allow X11 forwarding
 xhost "+SI:localuser:${USER_NAME}" >/dev/null 2>&1 || true
