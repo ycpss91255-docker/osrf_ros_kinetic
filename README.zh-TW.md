@@ -61,7 +61,9 @@ docker compose down
 
 ```bash
 ./build.sh                       # 建置（預設 devel）
+./build.sh --no-env test         # 建置但不更新 .env
 ./run.sh                         # 啟動（預設 devel）
+./run.sh --no-env -d             # 背景啟動，跳過 .env 更新
 ./exec.sh                        # 進入已啟動的容器
 
 docker compose build devel       # 等效指令
@@ -96,7 +98,7 @@ docker compose --profile runtime run --rm runtime
 
 ### .env 參數
 
-首次執行 `./build.sh` 或 `./run.sh` 時自動產生，或參考 `.env.example` 手動建立：
+每次執行 `./build.sh` 或 `./run.sh` 時自動更新（使用 `--no-env` 跳過）。或參考 `.env.example` 手動建立：
 
 | 變數 | 說明 | 範例 |
 |------|------|------|
