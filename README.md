@@ -17,6 +17,7 @@
 - [Usage](#usage)
 - [Configuration](#configuration)
 - [Architecture](#architecture)
+- [Smoke Tests](#smoke-tests)
 - [Directory Structure](#directory-structure)
 - [Updating docker\_setup\_helper](#updating-docker_setup_helper)
 
@@ -208,7 +209,7 @@ graph TD
 | `runtime-base` | `sys` | Minimal runtime base, no dev tools |
 | `runtime` | `runtime-base` | Adds required ROS packages |
 
-### Smoke Test Coverage
+## Smoke Tests
 
 Located in `smoke_test/ros_env.bats`, executed automatically during `docker build --target test` — **34 tests** total.
 

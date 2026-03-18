@@ -17,6 +17,7 @@
 - [使用方式](#使用方式)
 - [設定](#設定)
 - [架構](#架構)
+- [Smoke Tests](#smoke-tests)
 - [目錄結構](#目錄結構)
 - [更新 docker\_setup\_helper](#更新-docker_setup_helper)
 
@@ -208,7 +209,7 @@ graph TD
 | `runtime-base` | `sys` | 最小化 runtime 基底，無 dev tools |
 | `runtime` | `runtime-base` | 加入應用所需 ROS packages |
 
-### Smoke Test 涵蓋範圍
+## Smoke Tests
 
 位於 `smoke_test/ros_env.bats`，在 `docker build --target test` 時自動執行，共 **34** 項。
 
