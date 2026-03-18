@@ -18,8 +18,8 @@ jobs:
           mkdir -p "${ARCHIVE_NAME}"
           cp -r Dockerfile compose.yaml entrypoint.sh \
                 build.sh run.sh exec.sh \
-                smoke_test/ docker_setup_helper/src/ \
-                README.md "${ARCHIVE_NAME}/"
+                .env.example smoke_test/ docker_setup_helper/src/ \
+                README.md README.zh-TW.md "${ARCHIVE_NAME}/"
 
           tar czf "${ARCHIVE_NAME}.tar.gz" "${ARCHIVE_NAME}"
           zip -r  "${ARCHIVE_NAME}.zip"    "${ARCHIVE_NAME}"
