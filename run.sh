@@ -62,6 +62,9 @@ xhost "+SI:localuser:${USER_NAME}" >/dev/null 2>&1 || true
 if [[ "${DETACH}" == true ]]; then
     docker compose -f "${FILE_PATH}/compose.yaml" \
         --env-file "${FILE_PATH}/.env" \
+        down 2>/dev/null || true
+    docker compose -f "${FILE_PATH}/compose.yaml" \
+        --env-file "${FILE_PATH}/.env" \
         up -d "${TARGET}"
 else
     docker compose -f "${FILE_PATH}/compose.yaml" \
