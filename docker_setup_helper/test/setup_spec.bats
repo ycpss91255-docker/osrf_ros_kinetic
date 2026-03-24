@@ -338,6 +338,20 @@ EOF
     assert_equal "$(_msg unknown_arg)"  "未知參數"
 }
 
+@test "_msg returns Simplified Chinese messages when _LANG=zh-CN" {
+    _LANG="zh-CN"
+    assert_equal "$(_msg env_done)"     ".env 更新完成"
+    assert_equal "$(_msg env_comment)"  "自动检测字段请勿手动修改，如需变更 WS_PATH 可直接编辑此文件"
+    assert_equal "$(_msg unknown_arg)"  "未知参数"
+}
+
+@test "_msg returns Japanese messages when _LANG=ja" {
+    _LANG="ja"
+    assert_equal "$(_msg env_done)"     ".env 更新完了"
+    assert_equal "$(_msg env_comment)"  "自動検出フィールドは手動で編集しないでください。WS_PATH の変更はこのファイルを直接編集してください"
+    assert_equal "$(_msg unknown_arg)"  "不明な引数"
+}
+
 # ════════════════════════════════════════════════════════════════════
 # main --lang
 # ════════════════════════════════════════════════════════════════════

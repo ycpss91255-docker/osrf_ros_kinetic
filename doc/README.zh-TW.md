@@ -15,6 +15,7 @@
 - [特色](#特色)
 - [快速開始](#快速開始)
 - [使用方式](#使用方式)
+- [作為 Subtree 使用](#作為-subtree-使用)
 - [設定](#設定)
 - [架構](#架構)
 - [Smoke Tests](#smoke-tests)
@@ -93,6 +94,66 @@ docker compose --profile test build test
 docker compose --profile runtime build runtime
 docker compose --profile runtime run --rm runtime
 ```
+
+## 作為 Subtree 使用
+
+此 repo 可透過 `git subtree` 嵌入其他專案，讓專案自帶 Docker 開發環境。
+
+### 加入你的專案
+
+```bash
+git subtree add --prefix=docker/osrf_ros_kinetic \
+    https://github.com/ycpss91255-docker/osrf_ros_kinetic.git main --squash
+```
+
+加入後的目錄結構範例：
+
+```text
+my_robot_project/
+├── src/                         # 專案原始碼
+├── docker/osrf_ros_kinetic/     # Subtree
+│   ├── build.sh
+│   ├── run.sh
+│   ├── compose.yaml
+│   ├── Dockerfile
+│   └── docker_setup_helper/
+└── ...
+```
+
+### 建置與執行
+
+```bash
+cd docker/osrf_ros_kinetic
+./build.sh && ./run.sh
+```
+
+`build.sh` 內部使用 `--base-path`，無論從哪裡執行都能正確偵測路徑。
+
+### 工作區偵測行為
+
+<details>
+<summary>展開查看作為 subtree 時的偵測行為</summary>
+
+當 subtree 位於 `my_robot_project/docker/osrf_ros_kinetic/` 時：
+
+- **IMAGE_NAME**：目錄名為 `osrf_ros_kinetic`（非 `docker_*`），偵測會退回到 `.env.example` 讀取 `IMAGE_NAME=osrf_ros_kinetic` — 正常運作。
+- **WS_PATH**：策略 1（同層掃描）和策略 2（向上遍歷）可能不匹配，策略 3（退回值）會解析到上層目錄（`my_robot_project/docker/`）。
+
+**建議**：首次 build 後，手動編輯 `.env` 中的 `WS_PATH` 指向實際工作區。後續 build 會保留此值。
+
+</details>
+
+### 同步上游更新
+
+```bash
+git subtree pull --prefix=docker/osrf_ros_kinetic \
+    https://github.com/ycpss91255-docker/osrf_ros_kinetic.git main --squash
+```
+
+> **注意事項**：
+> - 本地微調由 git 正常追蹤。
+> - 若上游改了你也修改過的檔案，`subtree pull` 會產生 merge conflict，需手動解決。
+> - **不要**直接修改 subtree 內的 `docker_setup_helper/` — 那是 env repo 自己的 subtree。
 
 ## 設定
 

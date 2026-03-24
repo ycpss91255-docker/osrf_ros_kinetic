@@ -15,6 +15,7 @@
 - [特徴](#特徴)
 - [クイックスタート](#クイックスタート)
 - [使い方](#使い方)
+- [Subtree としての利用](#subtree-としての利用)
 - [設定](#設定)
 - [アーキテクチャ](#アーキテクチャ)
 - [スモークテスト](#スモークテスト)
@@ -93,6 +94,66 @@ docker compose --profile test build test
 docker compose --profile runtime build runtime
 docker compose --profile runtime run --rm runtime
 ```
+
+## Subtree としての利用
+
+このリポジトリは `git subtree` で他のプロジェクトに埋め込むことができ、プロジェクトに Docker 開発環境を同梱できます。
+
+### プロジェクトへの追加
+
+```bash
+git subtree add --prefix=docker/osrf_ros_kinetic \
+    https://github.com/ycpss91255-docker/osrf_ros_kinetic.git main --squash
+```
+
+追加後のディレクトリ構成例：
+
+```text
+my_robot_project/
+├── src/                         # プロジェクトソースコード
+├── docker/osrf_ros_kinetic/     # Subtree
+│   ├── build.sh
+│   ├── run.sh
+│   ├── compose.yaml
+│   ├── Dockerfile
+│   └── docker_setup_helper/
+└── ...
+```
+
+### ビルドと実行
+
+```bash
+cd docker/osrf_ros_kinetic
+./build.sh && ./run.sh
+```
+
+`build.sh` は内部で `--base-path` を使用するため、どのディレクトリから実行してもパス検出が正しく動作します。
+
+### ワークスペース検出の動作
+
+<details>
+<summary>クリックして subtree 使用時の検出動作を表示</summary>
+
+subtree が `my_robot_project/docker/osrf_ros_kinetic/` にある場合：
+
+- **IMAGE_NAME**：ディレクトリ名は `osrf_ros_kinetic`（`docker_*` ではない）ため、検出は `.env.example` の `IMAGE_NAME=osrf_ros_kinetic` にフォールバック — 正常に動作。
+- **WS_PATH**：戦略 1（同階層スキャン）と戦略 2（上方向走査）が一致しない場合、戦略 3（フォールバック）で親ディレクトリ（`my_robot_project/docker/`）に解決される。
+
+**推奨**：初回ビルド後、`.env` の `WS_PATH` を実際のワークスペースに手動編集してください。以降のビルドではこの値が保持されます。
+
+</details>
+
+### 上流との同期
+
+```bash
+git subtree pull --prefix=docker/osrf_ros_kinetic \
+    https://github.com/ycpss91255-docker/osrf_ros_kinetic.git main --squash
+```
+
+> **注意事項**：
+> - ローカルの変更は git で通常通り追跡されます。
+> - 上流があなたが変更したファイルも変更した場合、`subtree pull` で merge conflict が発生する可能性があり、手動で解決が必要です。
+> - subtree 内の `docker_setup_helper/` は**直接変更しないでください** — env リポジトリ自身の subtree として管理されています。
 
 ## 設定
 
