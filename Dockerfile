@@ -114,7 +114,7 @@ FROM base AS devel
 
 ARG USER
 ARG GROUP
-ARG ENTRYPOINT_FILE="entrypoint.sh"
+ARG ENTRYPOINT_FILE="script/entrypoint.sh"
 ARG CONFIG_DIR="/tmp/config"
 ARG CONFIG_SRC="docker_setup_helper/src/config"
 
@@ -197,7 +197,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --chmod=0755 entrypoint.sh /entrypoint.sh
+COPY --chmod=0755 script/entrypoint.sh /entrypoint.sh
 
 USER "${USER}"
 WORKDIR "${HOME}/work"
