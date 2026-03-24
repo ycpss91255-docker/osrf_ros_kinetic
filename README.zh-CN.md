@@ -1,0 +1,305 @@
+# OSRF ROS Kinetic Docker Environment
+
+**[English](README.md)** | **[繁體中文](README.zh-TW.md)** | **[简体中文](README.zh-CN.md)** | **[日本語](README.ja.md)**
+
+> **TL;DR** — 一键构建基于 `osrf/ros` desktop-full 镜像的 ROS 1 Kinetic 容器化开发环境（仅支持 x86_64）。自动检测 UID/GID，支持 X11 GUI 转发，多阶段构建含 smoke test 验证。
+>
+> ```bash
+> ./build.sh && ./run.sh
+> ```
+
+---
+
+## 目录
+
+- [特色](#特色)
+- [快速开始](#快速开始)
+- [使用方式](#使用方式)
+- [设置](#设置)
+- [架构](#架构)
+- [Smoke Tests](#smoke-tests)
+- [目录结构](#目录结构)
+- [更新 docker\_setup\_helper](#更新-docker_setup_helper)
+
+---
+
+## 特色
+
+- **OSRF desktop-full**：完整 ROS 桌面环境，含 RViz、Gazebo 等
+- **多阶段构建**：sys → base → devel / test / runtime，按需求选择
+- **Smoke Test**：build 时自动跑 Bats 测试验证环境正确性
+- **Docker Compose**：一个 `compose.yaml` 管理所有 target
+- **自动检测**：`setup.sh` 自动检测 UID/GID/workspace，生成 `.env`
+- **模块化设置**：shell config 通过 [docker_setup_helper](https://github.com/ycpss91255-docker/docker_setup_helper) subtree 管理
+- **X11 转发**：支持 GUI 应用程序（RViz、Terminator 等）
+
+> **注意**：此镜像使用 `osrf/ros`，仅支持 **x86_64**。如需 ARM/Raspberry Pi 支持，请使用 [ros_kinetic](https://github.com/ycpss91255-docker/ros_kinetic)。
+
+## 快速开始
+
+```bash
+# 1. 构建开发环境（首次会自动生成 .env）
+./build.sh
+
+# 2. 启动容器
+./run.sh
+
+# 3. 进入已启动的容器
+./exec.sh
+
+# 或直接使用 docker compose
+docker compose up -d devel
+docker compose exec devel bash
+docker compose down
+```
+
+## 使用方式
+
+### 开发环境（devel）
+
+完整开发环境，含 tmux、terminator、vim、git 等。
+
+```bash
+./build.sh                       # 构建（默认 devel）
+./build.sh --no-env test         # 构建但不更新 .env
+./run.sh                         # 启动（默认 devel）
+./run.sh --no-env -d             # 后台启动，跳过 .env 更新
+./exec.sh                        # 进入已启动的容器
+
+docker compose build devel       # 等效指令
+docker compose run --rm devel    # 一次性启动
+docker compose up -d devel       # 后台启动
+docker compose exec devel bash   # 进入已启动的容器
+```
+
+### 测试（test）
+
+构建时自动执行 smoke test，失败则 build 中断。
+
+```bash
+./build.sh test
+# 或
+docker compose --profile test build test
+```
+
+### 部署（runtime）
+
+最小化镜像，仅含必要 ROS packages。
+
+```bash
+./build.sh runtime
+./run.sh runtime
+# 或
+docker compose --profile runtime build runtime
+docker compose --profile runtime run --rm runtime
+```
+
+## 设置
+
+### .env 参数
+
+每次执行 `./build.sh` 或 `./run.sh` 时自动更新（使用 `--no-env` 跳过）。或参考 `.env.example` 手动创建：
+
+| 变量 | 说明 | 示例 |
+|------|------|------|
+| `USER_NAME` | 容器内用户名 | `developer` |
+| `USER_GROUP` | 用户组 | `developer` |
+| `USER_UID` | 用户 UID（与 host 一致） | `1000` |
+| `USER_GID` | 用户 GID（与 host 一致） | `1000` |
+| `HARDWARE` | 硬件架构 | `x86_64` |
+| `DOCKER_HUB_USER` | Docker Hub 用户名 | `myuser` |
+| `GPU_ENABLED` | GPU 支持 | `true` / `false` |
+| `IMAGE_NAME` | 镜像名称 | `osrf_ros_kinetic` |
+| `WS_PATH` | 工作区挂载路径 | `/home/user/catkin_ws` |
+
+### 自动检测细节
+
+`setup.sh` 自动检测系统参数并生成 `.env`。以下记录两个较复杂的检测逻辑。
+
+<details>
+<summary>展开查看检测逻辑</summary>
+
+#### IMAGE_NAME 推导
+
+扫描 repo 目录路径，推导镜像名称：
+
+| 优先序 | 规则 | 示例路径 | 结果 |
+|:------:|------|----------|------|
+| 1 | 最后一层目录符合 `docker_*` → 去前缀 | `/home/user/docker_osrf_ros_kinetic` | `osrf_ros_kinetic` |
+| 2 | 扫描路径（右→左）找 `*_ws` → 取前缀 | `/home/user/ros_kinetic_ws/docker_osrf_ros_kinetic` | `ros_kinetic` |
+| 3 | 读取 `.env.example` 中的 `IMAGE_NAME` | — | `.env.example` 中的值 |
+| 4 | 回退值 | — | `unknown` |
+
+#### WS_PATH 工作区检测
+
+三策略搜索，定位工作区挂载路径：
+
+| 优先序 | 策略 | 条件 | 结果 |
+|:------:|------|------|------|
+| 1 | 同层扫描 | 当前目录为 `docker_*` 且同层有 `*_ws` | 同层 `*_ws` 绝对路径 |
+| 2 | 向上遍历 | 沿路径向上寻找第一个 `*_ws` 元件 | 该 `*_ws` 目录 |
+| 3 | 回退值 | 以上皆不符合 | repo 的上层目录 |
+
+**示例**（策略 1）：
+```
+/home/user/
+├── docker_osrf_ros_kinetic/ ← repo（当前目录）
+└── osrf_ros_kinetic_ws/     ← 检测为 WS_PATH
+```
+
+**示例**（策略 2）：
+```
+/home/user/catkin_ws/src/docker_osrf_ros_kinetic/
+                     ↑ 向上遍历时找到 *_ws
+```
+
+> 若 `.env` 已存在且 `WS_PATH` 指向有效目录，则跳过检测，保留现有值。
+
+</details>
+
+### 语言设置
+
+`setup.sh` 默认显示英文消息，可通过环境变量切换为中文：
+
+```bash
+# 重新生成 .env（中文提示）
+rm .env
+SETUP_LANG=zh ./build.sh
+```
+
+## 架构
+
+### Docker Build Stage 关系图
+
+```mermaid
+graph TD
+    EXT1["bats/bats:latest"]:::external
+    EXT2["alpine:latest"]:::external
+    EXT3["osrf/ros:kinetic-desktop-full-xenial"]:::external
+
+    EXT1 --> bats-src["bats-src"]:::tool
+    EXT2 --> bats-ext["bats-extensions"]:::tool
+
+    EXT3 --> sys["sys\nuser/group・locale・timezone"]:::stage
+
+    sys --> base["base\nsudo・git・vim・tmux・terminator・python2..."]:::stage
+    base --> devel["devel\nshell config"]:::stage
+
+    bats-src --> test["test  ⚡ ephemeral\nsmoke_test/ 执行后即丢"]:::ephemeral
+    bats-ext --> test
+    devel --> test
+
+    sys --> runtime-base["runtime-base\nsudo・tini"]:::stage
+    runtime-base --> runtime["runtime\n+ 必要 ROS packages"]:::stage
+
+    classDef external fill:#555,color:#fff,stroke:#999
+    classDef tool fill:#8B6914,color:#fff,stroke:#c8960c
+    classDef stage fill:#1a5276,color:#fff,stroke:#2980b9
+    classDef ephemeral fill:#6e2c00,color:#fff,stroke:#e67e22,stroke-dasharray:5 5
+```
+
+### Stage 说明
+
+| Stage | FROM | 用途 |
+|-------|------|------|
+| `bats-src` | `bats/bats:latest` | bats 二进制来源，不出货 |
+| `bats-extensions` | `alpine:latest` | bats-support、bats-assert，不出货 |
+| `sys` | `osrf/ros:kinetic-desktop-full-xenial` | OS 基础：user/group、locale、timezone |
+| `base` | `sys` | 通用开发工具（apt） |
+| `devel` | `base` | 完整开发环境，含 shell 设置 |
+| `test` | `devel` | 注入 bats，执行 smoke_test/，build 完即丢 |
+| `runtime-base` | `sys` | 最小化 runtime 基底，无 dev tools |
+| `runtime` | `runtime-base` | 加入应用所需 ROS packages |
+
+## Smoke Tests
+
+位于 `smoke_test/ros_env.bats`，在 `docker build --target test` 时自动执行，共 **34** 项。
+
+<details>
+<summary>展开查看测试详情</summary>
+
+#### ROS 环境 (9)
+
+| 测试项目 | 说明 |
+|----------|------|
+| `ROS_DISTRO` | 值为 `kinetic` |
+| `setup.bash` | 文件存在 |
+| `setup.bash` | 可 source |
+| `rostopic` | source ROS 后可用 |
+| `rosrun` | source ROS 后可用 |
+| `rosnode` | source ROS 后可用 |
+| `roslaunch` | source ROS 后可用 |
+| `rosmsg` | source ROS 后可用 |
+
+#### GUI 工具 (3)
+
+| 测试项目 | 说明 |
+|----------|------|
+| `rviz` | source ROS 后可用（desktop-full） |
+| `rqt` | source ROS 后可用 |
+| `gazebo` | 可用 |
+
+#### 基础工具 (11)
+
+| 测试项目 | 说明 |
+|----------|------|
+| `python` | 可用 |
+| `pip` | 可用 |
+| `git` | 可用 |
+| `vim` | 可用 |
+| `curl` | 可用 |
+| `wget` | 可用 |
+| `tmux` | 可用 |
+| `tree` | 可用 |
+| `htop` | 可用 |
+| `sudo` | 可用 |
+| `sudo` | 免密码执行 |
+
+#### 系统 (11)
+
+| 测试项目 | 说明 |
+|----------|------|
+| 用户 | 非 root |
+| `HOME` | 已设置且存在 |
+| 时区 | `Asia/Taipei` |
+| `LANG` | `en_US.UTF-8` |
+| `LC_ALL` | `en_US.UTF-8` |
+| `NVIDIA_VISIBLE_DEVICES` | `all` |
+| `NVIDIA_DRIVER_CAPABILITIES` | `all` |
+| `entrypoint.sh` | 存在且可执行 |
+| work 目录 | 存在 |
+| work 目录 | 可写入 |
+| `bash-completion` | 已安装 |
+
+</details>
+
+## 目录结构
+
+```text
+osrf_ros_kinetic/
+├── compose.yaml                 # Docker Compose 定义
+├── Dockerfile                   # 多阶段构建
+├── build.sh                     # 构建脚本（任意目录可执行）
+├── run.sh                       # 启动脚本（任意目录可执行）
+├── exec.sh                      # 进入已启动的容器
+├── entrypoint.sh                # 容器入口点
+├── .env.example                 # 环境变量模板
+├── .github/workflows/           # CI/CD
+│   ├── main.yaml                # 主 pipeline
+│   ├── build-worker.yaml        # Docker build + smoke test
+│   └── release-worker.yaml      # GitHub Release
+├── smoke_test/                  # Bats 环境测试
+│   ├── ros_env.bats
+│   └── test_helper.bash
+└── docker_setup_helper/         # git subtree (v1.2.0)
+    └── src/
+        ├── setup.sh             # 系统检测 + .env 生成
+        └── config/              # shell/pip/terminator/tmux 设置
+```
+
+## 更新 docker_setup_helper
+
+```bash
+git subtree pull --prefix=docker_setup_helper \
+    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.x.x --squash
+```

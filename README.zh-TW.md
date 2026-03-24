@@ -1,6 +1,6 @@
 # OSRF ROS Kinetic Docker Environment
 
-**[English](README.md)** | **[繁體中文](README.zh-TW.md)**
+**[English](README.md)** | **[繁體中文](README.zh-TW.md)** | **[简体中文](README.zh-CN.md)** | **[日本語](README.ja.md)**
 
 > **TL;DR** — 一鍵建置基於 `osrf/ros` desktop-full 映像的 ROS 1 Kinetic 容器化開發環境（僅支援 x86_64）。自動偵測 UID/GID，支援 X11 GUI 轉發，多階段建置含 smoke test 驗證。
 >
