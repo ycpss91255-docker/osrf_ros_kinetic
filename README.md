@@ -15,6 +15,7 @@
 - [Features](#features)
 - [Quick Start](#quick-start)
 - [Usage](#usage)
+- [Usage as Subtree](#usage-as-subtree)
 - [Configuration](#configuration)
 - [Architecture](#architecture)
 - [Smoke Tests](#smoke-tests)
@@ -93,6 +94,66 @@ Minimal image with only essential ROS packages.
 docker compose --profile runtime build runtime
 docker compose --profile runtime run --rm runtime
 ```
+
+## Usage as Subtree
+
+This repo can be embedded into another project via `git subtree`, letting the project carry its own Docker dev environment.
+
+### Adding to Your Project
+
+```bash
+git subtree add --prefix=docker/osrf_ros_kinetic \
+    https://github.com/ycpss91255-docker/osrf_ros_kinetic.git main --squash
+```
+
+Example directory structure after adding:
+
+```text
+my_robot_project/
+├── src/                         # Project source code
+├── docker/osrf_ros_kinetic/     # Subtree
+│   ├── build.sh
+│   ├── run.sh
+│   ├── compose.yaml
+│   ├── Dockerfile
+│   └── docker_setup_helper/
+└── ...
+```
+
+### Building and Running
+
+```bash
+cd docker/osrf_ros_kinetic
+./build.sh && ./run.sh
+```
+
+`build.sh` uses `--base-path` internally, so path detection works correctly regardless of where you run it from.
+
+### Workspace Detection
+
+<details>
+<summary>Click to expand detection behavior when used as subtree</summary>
+
+When the subtree sits at `my_robot_project/docker/osrf_ros_kinetic/`:
+
+- **IMAGE_NAME**: directory name is `osrf_ros_kinetic` (not `docker_*`), so detection falls through to `.env.example` which has `IMAGE_NAME=osrf_ros_kinetic` — works correctly.
+- **WS_PATH**: strategy 1 (sibling scan) and strategy 2 (path traversal) may not match, so strategy 3 (fallback) resolves to the parent directory (`my_robot_project/docker/`).
+
+**Recommendation**: after the first build, edit `WS_PATH` in `.env` to point to your actual workspace. The value is preserved on subsequent builds.
+
+</details>
+
+### Syncing with Upstream
+
+```bash
+git subtree pull --prefix=docker/osrf_ros_kinetic \
+    https://github.com/ycpss91255-docker/osrf_ros_kinetic.git main --squash
+```
+
+> **Notes**:
+> - Local modifications are tracked by git normally.
+> - `subtree pull` may produce merge conflicts if upstream changed the same files you modified locally.
+> - Do **not** modify `docker_setup_helper/` inside the subtree — it is managed by the env repo's own subtree.
 
 ## Configuration
 
