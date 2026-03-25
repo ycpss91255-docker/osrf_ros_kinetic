@@ -274,7 +274,7 @@ graph TD
 
 ## Smoke Tests
 
-位於 `test/smoke_test/`，在 `docker build --target test` 時自動執行，共 **46** 項。
+位於 `test/smoke_test/`，在 `docker build --target test` 時自動執行，共 **50** 項。
 
 <details>
 <summary>展開查看測試細項</summary>
@@ -332,7 +332,7 @@ graph TD
 | work 目錄 | 可寫入 |
 | `bash-completion` | 已安裝 |
 
-#### 腳本 help (12)
+#### 腳本 help (16)
 
 | 測試項目 | 說明 |
 |----------|------|
@@ -348,6 +348,10 @@ graph TD
 | `stop.sh -h` | 結束碼 0 |
 | `stop.sh --help` | 結束碼 0 |
 | `stop.sh -h` | 顯示 usage |
+| `build.sh -h` | `LANG=zh_TW.UTF-8` 時偵測為 zh |
+| `build.sh -h` | `LANG=ja_JP.UTF-8` 時偵測為 ja |
+| `build.sh -h` | `LANG=en_US.UTF-8` 時預設為 en |
+| `build.sh -h` | `SETUP_LANG` 覆蓋 `LANG` |
 
 </details>
 
@@ -377,7 +381,7 @@ osrf_ros_kinetic/
 │   ├── ros_env.bats
 │   ├── script_help.bats
 │   └── test_helper.bash
-└── docker_setup_helper/         # git subtree (v1.3.1)
+└── docker_setup_helper/         # git subtree (v1.4.0)
     └── src/
         ├── setup.sh             # 系統偵測 + .env 產生
         └── config/              # shell/pip/terminator/tmux 設定
@@ -387,5 +391,5 @@ osrf_ros_kinetic/
 
 ```bash
 git subtree pull --prefix=docker_setup_helper \
-    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.3.1 --squash
+    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.4.0 --squash
 ```

@@ -274,7 +274,7 @@ graph TD
 
 ## スモークテスト
 
-`test/smoke_test/` に配置、`docker build --target test` 時に自動実行、合計 **46** 項目。
+`test/smoke_test/` に配置、`docker build --target test` 時に自動実行、合計 **50** 項目。
 
 <details>
 <summary>クリックしてテスト詳細を表示</summary>
@@ -332,7 +332,7 @@ graph TD
 | work ディレクトリ | 書き込み可能 |
 | `bash-completion` | インストール済み |
 
-#### スクリプト help (12)
+#### スクリプト help (16)
 
 | テスト項目 | 説明 |
 |------------|------|
@@ -348,6 +348,10 @@ graph TD
 | `stop.sh -h` | 終了コード 0 |
 | `stop.sh --help` | 終了コード 0 |
 | `stop.sh -h` | usage を表示 |
+| `build.sh -h` | `LANG=zh_TW.UTF-8` で zh を検出 |
+| `build.sh -h` | `LANG=ja_JP.UTF-8` で ja を検出 |
+| `build.sh -h` | `LANG=en_US.UTF-8` でデフォルト en |
+| `build.sh -h` | `SETUP_LANG` が `LANG` を上書き |
 
 </details>
 
@@ -377,7 +381,7 @@ osrf_ros_kinetic/
 │   ├── ros_env.bats
 │   ├── script_help.bats
 │   └── test_helper.bash
-└── docker_setup_helper/         # git subtree (v1.3.1)
+└── docker_setup_helper/         # git subtree (v1.4.0)
     └── src/
         ├── setup.sh             # システム検出 + .env 生成
         └── config/              # shell/pip/terminator/tmux 設定
@@ -387,5 +391,5 @@ osrf_ros_kinetic/
 
 ```bash
 git subtree pull --prefix=docker_setup_helper \
-    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.3.1 --squash
+    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.4.0 --squash
 ```
