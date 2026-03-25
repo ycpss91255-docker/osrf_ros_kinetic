@@ -3,7 +3,13 @@
 set -euo pipefail
 
 FILE_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-_LANG="${SETUP_LANG:-en}"
+_detect_lang() {
+    local _sys_lang="${LANG:-}"
+    case "${_sys_lang}" in
+        zh_TW*) echo "zh" ;; zh_CN*|zh_SG*) echo "zh-CN" ;; ja*) echo "ja" ;; *) echo "en" ;;
+    esac
+}
+_LANG="${SETUP_LANG:-$(_detect_lang)}"
 
 usage() {
     case "${_LANG}" in
