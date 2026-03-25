@@ -274,7 +274,7 @@ graph TD
 
 ## Smoke Tests
 
-位於 `smoke_test/ros_env.bats`，在 `docker build --target test` 時自動執行，共 **34** 項。
+位於 `test/smoke_test/`，在 `docker build --target test` 時自動執行，共 **46** 項。
 
 <details>
 <summary>展開查看測試細項</summary>
@@ -332,6 +332,23 @@ graph TD
 | work 目錄 | 可寫入 |
 | `bash-completion` | 已安裝 |
 
+#### 腳本 help (12)
+
+| 測試項目 | 說明 |
+|----------|------|
+| `build.sh -h` | 結束碼 0 |
+| `build.sh --help` | 結束碼 0 |
+| `build.sh -h` | 顯示 usage |
+| `run.sh -h` | 結束碼 0 |
+| `run.sh --help` | 結束碼 0 |
+| `run.sh -h` | 顯示 usage |
+| `exec.sh -h` | 結束碼 0 |
+| `exec.sh --help` | 結束碼 0 |
+| `exec.sh -h` | 顯示 usage |
+| `stop.sh -h` | 結束碼 0 |
+| `stop.sh --help` | 結束碼 0 |
+| `stop.sh -h` | 顯示 usage |
+
 </details>
 
 ## 目錄結構
@@ -343,16 +360,24 @@ osrf_ros_kinetic/
 ├── build.sh                     # 建置腳本（任意目錄可執行）
 ├── run.sh                       # 啟動腳本（任意目錄可執行）
 ├── exec.sh                      # 進入已啟動的容器
-├── entrypoint.sh                # 容器進入點
+├── stop.sh                      # 停止執行中的容器
 ├── .env.example                 # 環境變數範本
+├── .hadolint.yaml               # Hadolint 忽略規則
+├── script/
+│   └── entrypoint.sh            # 容器進入點
+├── doc/
+│   ├── README.zh-TW.md          # 繁體中文
+│   ├── README.zh-CN.md          # 簡體中文
+│   └── README.ja.md             # 日文
 ├── .github/workflows/           # CI/CD
 │   ├── main.yaml                # 主 pipeline
 │   ├── build-worker.yaml        # Docker build + smoke test
 │   └── release-worker.yaml      # GitHub Release
-├── smoke_test/                  # Bats 環境測試
+├── test/smoke_test/             # Bats 環境測試
 │   ├── ros_env.bats
+│   ├── script_help.bats
 │   └── test_helper.bash
-└── docker_setup_helper/         # git subtree (v1.2.0)
+└── docker_setup_helper/         # git subtree (v1.3.1)
     └── src/
         ├── setup.sh             # 系統偵測 + .env 產生
         └── config/              # shell/pip/terminator/tmux 設定
@@ -362,5 +387,5 @@ osrf_ros_kinetic/
 
 ```bash
 git subtree pull --prefix=docker_setup_helper \
-    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.x.x --squash
+    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.3.1 --squash
 ```

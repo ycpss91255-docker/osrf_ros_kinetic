@@ -274,7 +274,7 @@ graph TD
 
 ## Smoke Tests
 
-Located in `smoke_test/ros_env.bats`, executed automatically during `docker build --target test` — **34 tests** total.
+Located in `test/smoke_test/`, executed automatically during `docker build --target test` — **46 tests** total.
 
 <details>
 <summary>Click to expand test details</summary>
@@ -332,6 +332,23 @@ Located in `smoke_test/ros_env.bats`, executed automatically during `docker buil
 | Work directory | Writable |
 | `bash-completion` | Installed |
 
+#### Script help (12)
+
+| Test | Description |
+|------|-------------|
+| `build.sh -h` | Exits 0 |
+| `build.sh --help` | Exits 0 |
+| `build.sh -h` | Prints usage |
+| `run.sh -h` | Exits 0 |
+| `run.sh --help` | Exits 0 |
+| `run.sh -h` | Prints usage |
+| `exec.sh -h` | Exits 0 |
+| `exec.sh --help` | Exits 0 |
+| `exec.sh -h` | Prints usage |
+| `stop.sh -h` | Exits 0 |
+| `stop.sh --help` | Exits 0 |
+| `stop.sh -h` | Prints usage |
+
 </details>
 
 ## Directory Structure
@@ -343,16 +360,24 @@ osrf_ros_kinetic/
 ├── build.sh                     # Build script (runs from any directory)
 ├── run.sh                       # Run script (runs from any directory)
 ├── exec.sh                      # Enter running container
-├── entrypoint.sh                # Container entrypoint
+├── stop.sh                      # Stop running container
 ├── .env.example                 # Environment variable template
+├── .hadolint.yaml               # Hadolint ignore rules
+├── script/
+│   └── entrypoint.sh            # Container entrypoint
+├── doc/
+│   ├── README.zh-TW.md          # Traditional Chinese
+│   ├── README.zh-CN.md          # Simplified Chinese
+│   └── README.ja.md             # Japanese
 ├── .github/workflows/           # CI/CD
 │   ├── main.yaml                # Main pipeline
 │   ├── build-worker.yaml        # Docker build + smoke test
 │   └── release-worker.yaml      # GitHub Release
-├── smoke_test/                  # Bats environment tests
+├── test/smoke_test/             # Bats environment tests
 │   ├── ros_env.bats
+│   ├── script_help.bats
 │   └── test_helper.bash
-└── docker_setup_helper/         # git subtree (v1.2.0)
+└── docker_setup_helper/         # git subtree (v1.3.1)
     └── src/
         ├── setup.sh             # System detection + .env generation
         └── config/              # shell/pip/terminator/tmux config
@@ -362,5 +387,5 @@ osrf_ros_kinetic/
 
 ```bash
 git subtree pull --prefix=docker_setup_helper \
-    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.x.x --squash
+    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.3.1 --squash
 ```
