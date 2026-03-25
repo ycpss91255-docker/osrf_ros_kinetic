@@ -274,7 +274,7 @@ graph TD
 
 ## スモークテスト
 
-`smoke_test/ros_env.bats` に配置、`docker build --target test` 時に自動実行、合計 **34** 項目。
+`test/smoke_test/` に配置、`docker build --target test` 時に自動実行、合計 **46** 項目。
 
 <details>
 <summary>クリックしてテスト詳細を表示</summary>
@@ -332,6 +332,23 @@ graph TD
 | work ディレクトリ | 書き込み可能 |
 | `bash-completion` | インストール済み |
 
+#### スクリプト help (12)
+
+| テスト項目 | 説明 |
+|------------|------|
+| `build.sh -h` | 終了コード 0 |
+| `build.sh --help` | 終了コード 0 |
+| `build.sh -h` | usage を表示 |
+| `run.sh -h` | 終了コード 0 |
+| `run.sh --help` | 終了コード 0 |
+| `run.sh -h` | usage を表示 |
+| `exec.sh -h` | 終了コード 0 |
+| `exec.sh --help` | 終了コード 0 |
+| `exec.sh -h` | usage を表示 |
+| `stop.sh -h` | 終了コード 0 |
+| `stop.sh --help` | 終了コード 0 |
+| `stop.sh -h` | usage を表示 |
+
 </details>
 
 ## ディレクトリ構成
@@ -343,16 +360,24 @@ osrf_ros_kinetic/
 ├── build.sh                     # ビルドスクリプト（任意のディレクトリから実行可能）
 ├── run.sh                       # 起動スクリプト（任意のディレクトリから実行可能）
 ├── exec.sh                      # 起動中のコンテナに接続
-├── entrypoint.sh                # コンテナエントリポイント
+├── stop.sh                      # 起動中のコンテナを停止
 ├── .env.example                 # 環境変数テンプレート
+├── .hadolint.yaml               # Hadolint 無視ルール
+├── script/
+│   └── entrypoint.sh            # コンテナエントリポイント
+├── doc/
+│   ├── README.zh-TW.md          # 繁体字中国語
+│   ├── README.zh-CN.md          # 簡体字中国語
+│   └── README.ja.md             # 日本語
 ├── .github/workflows/           # CI/CD
 │   ├── main.yaml                # メインパイプライン
 │   ├── build-worker.yaml        # Docker build + smoke test
 │   └── release-worker.yaml      # GitHub Release
-├── smoke_test/                  # Bats 環境テスト
+├── test/smoke_test/             # Bats 環境テスト
 │   ├── ros_env.bats
+│   ├── script_help.bats
 │   └── test_helper.bash
-└── docker_setup_helper/         # git subtree (v1.2.0)
+└── docker_setup_helper/         # git subtree (v1.3.1)
     └── src/
         ├── setup.sh             # システム検出 + .env 生成
         └── config/              # shell/pip/terminator/tmux 設定
@@ -362,5 +387,5 @@ osrf_ros_kinetic/
 
 ```bash
 git subtree pull --prefix=docker_setup_helper \
-    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.x.x --squash
+    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.3.1 --squash
 ```
