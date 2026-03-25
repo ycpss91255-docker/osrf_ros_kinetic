@@ -353,6 +353,43 @@ EOF
 }
 
 # ════════════════════════════════════════════════════════════════════
+# _detect_lang
+# ════════════════════════════════════════════════════════════════════
+
+@test "_detect_lang returns zh for zh_TW.UTF-8" {
+    LANG="zh_TW.UTF-8"
+    assert_equal "$(_detect_lang)" "zh"
+}
+
+@test "_detect_lang returns zh-CN for zh_CN.UTF-8" {
+    LANG="zh_CN.UTF-8"
+    assert_equal "$(_detect_lang)" "zh-CN"
+}
+
+@test "_detect_lang returns ja for ja_JP.UTF-8" {
+    LANG="ja_JP.UTF-8"
+    assert_equal "$(_detect_lang)" "ja"
+}
+
+@test "_detect_lang returns en for en_US.UTF-8" {
+    LANG="en_US.UTF-8"
+    assert_equal "$(_detect_lang)" "en"
+}
+
+@test "_detect_lang returns en when LANG is unset" {
+    unset LANG
+    assert_equal "$(_detect_lang)" "en"
+}
+
+@test "_detect_lang is overridden by SETUP_LANG" {
+    LANG="ja_JP.UTF-8"
+    SETUP_LANG="zh"
+    # Re-evaluate _LANG as setup.sh would
+    _LANG="${SETUP_LANG:-$(_detect_lang)}"
+    assert_equal "${_LANG}" "zh"
+}
+
+# ════════════════════════════════════════════════════════════════════
 # main --lang
 # ════════════════════════════════════════════════════════════════════
 

@@ -1,34 +1,37 @@
-name: Release
+name: Reusable Release Worker
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 jobs:
-  release:
+  create-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_FILES: >
+        src/
+        LICENSE
+        README.md
+        ci.sh
+        compose.yaml
+      VERSION: "${{ github.ref_name }}"
+
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create release archive
+      - name: Package project
         run: |
-          VERSION="${GITHUB_REF_NAME}"
-          ARCHIVE_NAME="osrf_ros_kinetic-${VERSION}"
-
-          mkdir -p "${ARCHIVE_NAME}"
-          cp -r Dockerfile compose.yaml \
-                build.sh run.sh exec.sh stop.sh \
-                script/ .env.example test/smoke_test/ docker_setup_helper/src/ \
-                README.md doc/ "${ARCHIVE_NAME}/"
-
-          tar czf "${ARCHIVE_NAME}.tar.gz" "${ARCHIVE_NAME}"
-          zip -r  "${ARCHIVE_NAME}.zip"    "${ARCHIVE_NAME}"
+          tar -czvf docker-setup-helper-${VERSION}.tar.gz ${RELEASE_FILES}
+          zip -r docker-setup-helper-${VERSION}.zip ${RELEASE_FILES}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
-            osrf_ros_kinetic-*.tar.gz
-            osrf_ros_kinetic-*.zip
+            docker-setup-helper-${{ github.ref_name }}.tar.gz
+            docker-setup-helper-${{ github.ref_name }}.zip
+          generate_release_notes: true
+          prerelease: "${{ contains(github.ref_name, '-') }}"

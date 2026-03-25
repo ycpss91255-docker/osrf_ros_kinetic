@@ -1,80 +1,38 @@
 services:
-  # ── Development environment ──────────────────────────────────
-  devel:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: devel
-      args:
-        ROS_DISTRO: ${ROS_DISTRO:-kinetic}
-        ROS_TAG: ${ROS_TAG:-desktop-full}
-        UBUNTU_CODENAME: ${UBUNTU_CODENAME:-xenial}
-        USER: ${USER_NAME}
-        GROUP: ${USER_GROUP}
-        UID: ${USER_UID}
-        GID: ${USER_GID}
-        HARDWARE: ${HARDWARE}
-    image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:devel
-    container_name: ${IMAGE_NAME}
-    privileged: true
-    network_mode: host
-    ipc: host
-    stdin_open: true
-    tty: true
+  ci:
+    image: kcov/kcov
+    security_opt:
+      - seccomp=unconfined
+    volumes:
+      - .:/source
+    working_dir: /source
     environment:
-      - DISPLAY=${DISPLAY}
-    volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix:ro
-      - /dev:/dev
-      - ${WS_PATH}:/home/${USER_NAME}/work
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      - HOST_UID=${HOST_UID:-1000}
+      - HOST_GID=${HOST_GID:-1000}
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -e
+        apt-get update -qq && \
+        apt-get install -y --no-install-recommends \
+            bats \
+            bats-support \
+            bats-assert \
+            shellcheck \
+            git \
+            ca-certificates && \
+        git clone --depth 1 -b v1.2.5 \
+            https://github.com/jasonkarns/bats-mock /usr/lib/bats/bats-mock
 
-  # ── Smoke test (ephemeral) ───────────────────────────────────
-  test:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: test
-      args:
-        ROS_DISTRO: ${ROS_DISTRO:-kinetic}
-        ROS_TAG: ${ROS_TAG:-desktop-full}
-        UBUNTU_CODENAME: ${UBUNTU_CODENAME:-xenial}
-        USER: ${USER_NAME}
-        GROUP: ${USER_GROUP}
-        UID: ${USER_UID}
-        GID: ${USER_GID}
-        HARDWARE: ${HARDWARE}
-    image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:test
-    profiles:
-      - test
+        echo "--- Running ShellCheck ---"
+        find src -name "*.sh" | xargs shellcheck -x
 
-  # ── Runtime (minimal) ───────────────────────────────────────
-  runtime:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: runtime
-      args:
-        ROS_DISTRO: ${ROS_DISTRO:-kinetic}
-        ROS_TAG: ${ROS_TAG:-desktop-full}
-        UBUNTU_CODENAME: ${UBUNTU_CODENAME:-xenial}
-        USER: ${USER_NAME}
-        GROUP: ${USER_GROUP}
-        UID: ${USER_UID}
-        GID: ${USER_GID}
-    image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:runtime
-    container_name: ${IMAGE_NAME}-runtime
-    network_mode: host
-    ipc: host
-    stdin_open: true
-    tty: true
-    volumes:
-      - ${WS_PATH}:/home/${USER_NAME}/work
-    profiles:
-      - runtime
+        echo "--- Running Tests & Coverage ---"
+        kcov --include-path=./src \
+            --exclude-path=test/ \
+            ./coverage \
+            bats test/
+
+        chown -R "${HOST_UID}:${HOST_GID}" coverage/ src/
+        echo "Coverage report: $(pwd)/coverage/index.html"

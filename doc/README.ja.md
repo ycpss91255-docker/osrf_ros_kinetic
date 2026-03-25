@@ -1,366 +1,382 @@
-# OSRF ROS Kinetic Docker Environment
+# Docker Setup Helper [![テスト状態](https://github.com/ycpss91255/docker_setup_helper/workflows/Main%20CI/CD%20Pipeline/badge.svg)](https://github.com/ycpss91255/docker_setup_helper/actions) [![カバレッジ](https://codecov.io/gh/ycpss91255/docker_setup_helper/branch/main/graph/badge.svg)](https://codecov.io/gh/ycpss91255/docker_setup_helper)
 
-**[English](../README.md)** | **[繁體中文](README.zh-TW.md)** | **[简体中文](README.zh-CN.md)** | **[日本語](README.ja.md)**
+![言語](https://img.shields.io/badge/言語-Bash-blue?style=flat-square)
+![テストフレームワーク](https://img.shields.io/badge/テスト-Bats-orange?style=flat-square)
+![ShellCheck](https://img.shields.io/badge/ShellCheck-準拠-brightgreen?style=flat-square)
+[![ライセンス](https://img.shields.io/badge/ライセンス-GPL--3.0-yellow?style=flat-square)](../LICENSE)
 
-> **TL;DR** — ワンコマンドで `osrf/ros` desktop-full イメージベースの ROS 1 Kinetic コンテナ化開発環境をビルド（x86_64 のみ対応）。UID/GID を自動検出、X11 GUI 転送対応、マルチステージビルドで smoke test 検証付き。
+[English](../README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語]
+
+> **TL;DR** — モジュール化 Bash ツールキット。システムパラメータ（UID/GID、GPU、アーキテクチャ、ワークスペース）を自動検出し、Docker Compose ビルド用の `.env` を生成。Bats + Kcov で 100% テストカバレッジ。
 >
 > ```bash
-> ./build.sh && ./run.sh
+> ./src/setup.sh        # .env を生成
+> ./ci.sh               # ローカルでテストを実行
 > ```
 
----
+モジュール化された Docker 環境セットアップツールキット。システムパラメータの自動検出と Docker コンテナビルド用の `.env` 生成を自動化します。従来の `get_param.sh` を置き換える、テスト可能で拡張性のあるアーキテクチャです。
 
-## 目次
+## 🌟 特徴
 
-- [特徴](#特徴)
-- [クイックスタート](#クイックスタート)
-- [使い方](#使い方)
-- [Subtree としての利用](#subtree-としての利用)
-- [設定](#設定)
-- [アーキテクチャ](#アーキテクチャ)
-- [スモークテスト](#スモークテスト)
-- [ディレクトリ構成](#ディレクトリ構成)
-- [docker\_setup\_helper の更新](#docker_setup_helper-の更新)
+- **システム検出**：ユーザー情報（UID/GID）、ハードウェアアーキテクチャ、GPU サポート、Docker Hub 認証情報を自動検出。
+- **イメージ名推論**：ディレクトリ構造からイメージ名を推論（`docker_*` プレフィックス、`*_ws` サフィックス規約に対応）。
+- **ワークスペース検出**：3 戦略のワークスペースパス検出（同階層スキャン、上方向走査、親ディレクトリフォールバック）。
+- **`.env` 生成**：Docker Compose ビルドで即座に使える `.env` ファイルを生成。
+- **Shell 設定管理**：Bash、Tmux、Terminator の設定スクリプトを同梱。
 
----
-
-## 特徴
-
-- **OSRF desktop-full**：完全な ROS デスクトップ環境、RViz、Gazebo 等を含む
-- **マルチステージビルド**：sys → base → devel / test / runtime、用途に応じて選択
-- **Smoke Test**：ビルド時に Bats テストを自動実行し環境の正確性を検証
-- **Docker Compose**：1 つの `compose.yaml` で全 target を管理
-- **自動検出**：`setup.sh` が UID/GID/workspace を自動検出し `.env` を生成
-- **モジュール化設定**：shell config は [docker_setup_helper](https://github.com/ycpss91255-docker/docker_setup_helper) subtree で管理
-- **X11 転送**：GUI アプリケーション対応（RViz、Terminator 等）
-
-> **注意**：このイメージは `osrf/ros` を使用しており、**x86_64** のみ対応。ARM/Raspberry Pi が必要な場合は [ros_kinetic](https://github.com/ycpss91255-docker/ros_kinetic) をご利用ください。
-
-## クイックスタート
-
-```bash
-# 1. 開発環境をビルド（初回は自動で .env を生成）
-./build.sh
-
-# 2. コンテナを起動
-./run.sh
-
-# 3. 起動中のコンテナに接続
-./exec.sh
-
-# または docker compose を直接使用
-docker compose up -d devel
-docker compose exec devel bash
-docker compose down
-```
-
-## 使い方
-
-### 開発環境（devel）
-
-フル機能の開発環境。tmux、terminator、vim、git 等を含む。
-
-```bash
-./build.sh                       # ビルド（デフォルト devel）
-./build.sh --no-env test         # ビルドするが .env は更新しない
-./run.sh                         # 起動（デフォルト devel）
-./run.sh --no-env -d             # バックグラウンド起動、.env 更新をスキップ
-./exec.sh                        # 起動中のコンテナに接続
-
-docker compose build devel       # 同等コマンド
-docker compose run --rm devel    # ワンショット起動
-docker compose up -d devel       # バックグラウンド起動
-docker compose exec devel bash   # 起動中のコンテナに接続
-```
-
-### テスト（test）
-
-ビルド時に smoke test を自動実行。失敗するとビルドが中断される。
-
-```bash
-./build.sh test
-# または
-docker compose --profile test build test
-```
-
-### デプロイ（runtime）
-
-最小化イメージ。必要な ROS packages のみ含む。
-
-```bash
-./build.sh runtime
-./run.sh runtime
-# または
-docker compose --profile runtime build runtime
-docker compose --profile runtime run --rm runtime
-```
-
-## Subtree としての利用
-
-このリポジトリは `git subtree` で他のプロジェクトに埋め込むことができ、プロジェクトに Docker 開発環境を同梱できます。
-
-### プロジェクトへの追加
-
-```bash
-git subtree add --prefix=docker/osrf_ros_kinetic \
-    https://github.com/ycpss91255-docker/osrf_ros_kinetic.git main --squash
-```
-
-追加後のディレクトリ構成例：
+## 📁 プロジェクト構成
 
 ```text
-my_robot_project/
-├── src/                         # プロジェクトソースコード
-├── docker/osrf_ros_kinetic/     # Subtree
-│   ├── build.sh
-│   ├── run.sh
-│   ├── compose.yaml
-│   ├── Dockerfile
-│   └── docker_setup_helper/
-└── ...
+.
+├── src/
+│   ├── setup.sh                         # メインスクリプト（get_param.sh の代替）
+│   └── config/
+│       ├── pip/
+│       │   ├── setup.sh                 # pip パッケージインストールスクリプト
+│       │   └── requirements.txt         # Python 依存パッケージ
+│       └── shell/
+│           ├── bashrc                   # Bash 設定ファイル
+│           ├── terminator/
+│           │   ├── setup.sh             # Terminator セットアップスクリプト
+│           │   └── config               # Terminator 設定ファイル
+│           └── tmux/
+│               ├── setup.sh             # Tmux + TPM セットアップスクリプト
+│               └── tmux.conf            # Tmux 設定ファイル
+├── test/                                # Bats テストケース（89 テスト）
+│   ├── test_helper.bash                 # テストユーティリティ & モックヘルパー
+│   ├── setup_spec.bats                  # setup.sh テスト（35 ケース）
+│   ├── bashrc_spec.bats                 # bashrc 検証テスト（14 ケース）
+│   ├── pip_setup_spec.bats              # pip セットアップテスト（3 ケース）
+│   ├── terminator_config_spec.bats      # terminator 設定検証（10 ケース）
+│   ├── terminator_setup_spec.bats       # terminator セットアップテスト（7 ケース）
+│   ├── tmux_conf_spec.bats             # tmux.conf 検証テスト（12 ケース）
+│   └── tmux_setup_spec.bats             # tmux セットアップテスト（8 ケース）
+├── ci.sh                                # ローカル CI エントリポイント
+├── compose.yaml                         # Docker CI 環境
+├── .codecov.yaml                        # Codecov 設定ファイル
+└── LICENSE
 ```
 
-### ビルドと実行
+## 📦 依存関係
 
+ローカル CI ワークフローの実行に必要：
+- **Docker**：テスト環境の実行用。
+- **Docker Compose**：コンテナサービスの管理用。
+
+CI コンテナ内で以下のツールが自動的に処理されます：
+- **Bats Core**：テストフレームワーク。
+- **ShellCheck**：静的解析ツール。
+- **Kcov**：カバレッジレポート生成ツール。
+- **bats-mock**：コマンドモックライブラリ。
+
+## 🚀 クイックスタート
+
+### 1. セットアップ実行（`.env` を生成）
 ```bash
-cd docker/osrf_ros_kinetic
-./build.sh && ./run.sh
+./src/setup.sh
+```
+システムパラメータを自動検出し `.env` ファイルを生成：
+```env
+USER_NAME=youruser
+USER_GROUP=yourgroup
+USER_UID=1000
+USER_GID=1000
+HARDWARE=x86_64
+DOCKER_HUB_USER=yourhubuser
+GPU_ENABLED=false
+IMAGE_NAME=myproject
+WS_PATH=/path/to/workspace
 ```
 
-`build.sh` は内部で `--base-path` を使用するため、どのディレクトリから実行してもパス検出が正しく動作します。
+### 2. Docker Compose で使用
+生成された `.env` を `compose.yaml` で参照：
+```yaml
+services:
+  dev:
+    build:
+      args:
+        USER_NAME: ${USER_NAME}
+        USER_UID: ${USER_UID}
+        USER_GID: ${USER_GID}
+    volumes:
+      - ${WS_PATH}:/home/${USER_NAME}/work
+```
 
-### ワークスペース検出の動作
+### 3. Git Subtree で統合
+```bash
+git subtree add --prefix=docker_setup_helper \
+    https://github.com/ycpss91255/docker_setup_helper.git main --squash
+```
+
+### 4. ローカルでフルチェック実行（CI）
+```bash
+chmod +x ci.sh
+./ci.sh
+```
+Docker 経由で ShellCheck リント、Bats ユニットテスト、Kcov カバレッジレポートを実行します。
+
+## 🛠 開発ガイド
+
+### ShellCheck 準拠
+本プロジェクトは ShellCheck を厳格に適用しています。動的ソーシングにはディレクティブを使用：
+```bash
+# shellcheck disable=SC1090
+source "${DYNAMIC_PATH}"
+```
+
+### テストカバレッジ
+
+カバレッジ目標：**Patch** 100%、**Project** 減少しないこと（`auto`）。
 
 <details>
-<summary>クリックして subtree 使用時の検出動作を表示</summary>
+<summary>クリックしてテスト詳細を表示（89 テスト）</summary>
 
-subtree が `my_robot_project/docker/osrf_ros_kinetic/` にある場合：
+#### setup.sh（35）
 
-- **IMAGE_NAME**：ディレクトリ名は `osrf_ros_kinetic`（`docker_*` ではない）ため、検出は `.env.example` の `IMAGE_NAME=osrf_ros_kinetic` にフォールバック — 正常に動作。
-- **WS_PATH**：戦略 1（同階層スキャン）と戦略 2（上方向走査）が一致しない場合、戦略 3（フォールバック）で親ディレクトリ（`my_robot_project/docker/`）に解決される。
+| テスト項目 | 説明 |
+|------------|------|
+| `detect_user_info` | `USER` 環境変数が設定されている場合に使用 |
+| `detect_user_info` | `USER` 未設定時は `id -un` にフォールバック |
+| `detect_user_info` | group/uid/gid を正しく設定 |
+| `detect_hardware` | `uname -m` の出力を返す |
+| `detect_docker_hub_user` | ログイン時は `docker info` の username を使用 |
+| `detect_docker_hub_user` | docker が空の場合は `USER` にフォールバック |
+| `detect_docker_hub_user` | `USER` も未設定の場合は `id -un` にフォールバック |
+| `detect_gpu` | nvidia-container-toolkit インストール時は `true` を返す |
+| `detect_gpu` | 未インストール時は `false` を返す |
+| `detect_image_name` | パス内で `*_ws` を検出 |
+| `detect_image_name` | パス末端で `*_ws` を検出 |
+| `detect_image_name` | `docker_*` がパス内の `*_ws` より優先 |
+| `detect_image_name` | 最後のディレクトリから `docker_` プレフィックスを除去 |
+| `detect_image_name` | 絶対パスルートから `docker_` を除去 |
+| `detect_image_name` | 通常のディレクトリでは `unknown` を返す |
+| `detect_image_name` | 汎用パスでは `unknown` を返す |
+| `detect_image_name` | 結果を小文字に変換 |
+| `detect_ws_path` | 戦略 1：`docker_*` が同階層の `*_ws` を検出 |
+| `detect_ws_path` | 戦略 1：`docker_*` で同階層に `*_ws` がない場合は次へ |
+| `detect_ws_path` | 戦略 2：パス内で `_ws` コンポーネントを検出 |
+| `detect_ws_path` | 戦略 3：親ディレクトリにフォールバック |
+| `write_env` | 必要な全変数を含む `.env` を作成 |
+| `main` | `.env` が存在しない場合に作成 |
+| `main` | 既存の `.env` を読み込み有効な `WS_PATH` を保持 |
+| `main` | `.env` 内の `WS_PATH` が無効な場合に再検出 |
+| `main` | `--base-path` 未指定時は `BASH_SOURCE` にフォールバック |
+| `main` | 不明な引数でエラーを返す |
+| `main` | `--base-path` の値が未指定でエラーを返す |
+| `_msg` | デフォルトで英語メッセージを返す |
+| `_msg` | `_LANG=zh` で中国語メッセージを返す |
+| `_msg` | `_LANG=zh-CN` で簡体字中国語メッセージを返す |
+| `_msg` | `_LANG=ja` で日本語メッセージを返す |
+| `main` | `--lang zh` で中国語メッセージを設定 |
+| `main` | `--lang` の値が未指定でエラーを返す |
+| `_base_path` | デフォルトは repo root に解決、script ディレクトリではない（regression） |
 
-**推奨**：初回ビルド後、`.env` の `WS_PATH` を実際のワークスペースに手動編集してください。以降のビルドではこの値が保持されます。
+#### bashrc（14）
+
+| テスト項目 | 説明 |
+|------------|------|
+| `alias_func` | 定義済み |
+| `swc` | 定義済み |
+| `color_git_branch` | 定義済み |
+| `ros_complete` | 定義済み |
+| `ros_source` | 定義済み |
+| `ebc` | alias 定義済み |
+| `sbc` | alias 定義済み |
+| `alias_func` | bashrc 内で呼び出し |
+| `color_git_branch` | bashrc 内で呼び出し |
+| `ros_complete` | bashrc 内で呼び出し |
+| `ros_source` | bashrc 内で呼び出し |
+| `swc` | catkin `devel/setup.bash` を検索 |
+| `ros_source` | `ROS_DISTRO` を参照 |
+| `color_git_branch` | `PS1` を設定 |
+
+#### pip セットアップ（3）
+
+| テスト項目 | 説明 |
+|------------|------|
+| `setup.sh` | `requirements.txt` で `pip install` を実行 |
+| `setup.sh` | `PIP_BREAK_SYSTEM_PACKAGES=1` を設定 |
+| `setup.sh` | pip が利用不可の場合に失敗 |
+
+#### terminator 設定ファイル（10）
+
+| テスト項目 | 説明 |
+|------------|------|
+| 設定ファイル | `[global_config]` セクションあり |
+| 設定ファイル | `[keybindings]` セクションあり |
+| 設定ファイル | `[profiles]` セクションあり |
+| 設定ファイル | `[layouts]` セクションあり |
+| 設定ファイル | `[plugins]` セクションあり |
+| profiles | `[[default]]` あり |
+| default | システムフォント無効 |
+| default | 無制限スクロールバック |
+| layouts | Window タイプあり |
+| layouts | Terminal タイプあり |
+
+#### terminator セットアップ（7）
+
+| テスト項目 | 説明 |
+|------------|------|
+| `check_deps` | terminator インストール時は 0 を返す |
+| `check_deps` | terminator 未インストール時は失敗 |
+| `_entry_point` | 依存関係が通れば main を呼び出し |
+| `_entry_point` | 依存関係不足時は失敗 |
+| `main` | terminator 設定ディレクトリを作成 |
+| `main` | terminator 設定ファイルをコピー |
+| `main` | 正しい user/group で `chown` を実行 |
+
+#### tmux.conf（12）
+
+| テスト項目 | 説明 |
+|------------|------|
+| 設定ファイル | prefix key を定義 |
+| 設定ファイル | デフォルト shell が bash |
+| 設定ファイル | デフォルトターミナルを設定 |
+| 設定ファイル | マウスサポートを有効化 |
+| 設定ファイル | vi `status-keys` を有効化 |
+| 設定ファイル | vi `mode-keys` を有効化 |
+| 設定ファイル | ウィンドウ分割バインドを定義 |
+| 設定ファイル | 設定再読み込みバインドを定義 |
+| 設定ファイル | ステータスバーを有効化 |
+| 設定ファイル | ステータスバーの位置を設定 |
+| 設定ファイル | tpm プラグインを宣言 |
+| 設定ファイル | ファイル末尾で tpm を初期化 |
+
+#### tmux セットアップ（8）
+
+| テスト項目 | 説明 |
+|------------|------|
+| `check_deps` | tmux と git がインストール時は 0 を返す |
+| `check_deps` | tmux 未インストール時は失敗 |
+| `check_deps` | git 未インストール時は失敗 |
+| `_entry_point` | 依存関係が通れば main を呼び出し |
+| `_entry_point` | 依存関係不足時は失敗 |
+| `main` | tpm リポジトリを clone |
+| `main` | tmux 設定ディレクトリを作成 |
+| `main` | `tmux.conf` を設定ディレクトリにコピー |
 
 </details>
 
-### 上流との同期
-
+### BASH_SOURCE Guard パターン
+全スクリプトでテスト可能性のため `BASH_SOURCE` ガードパターンを使用：
 ```bash
-git subtree pull --prefix=docker/osrf_ros_kinetic \
-    https://github.com/ycpss91255-docker/osrf_ros_kinetic.git main --squash
-```
-
-> **注意事項**：
-> - ローカルの変更は git で通常通り追跡されます。
-> - 上流があなたが変更したファイルも変更した場合、`subtree pull` で merge conflict が発生する可能性があり、手動で解決が必要です。
-> - subtree 内の `docker_setup_helper/` は**直接変更しないでください** — env リポジトリ自身の subtree として管理されています。
-
-## 設定
-
-### .env パラメータ
-
-`./build.sh` または `./run.sh` 実行時に自動更新（`--no-env` でスキップ）。または `.env.example` を参考に手動作成：
-
-| 変数 | 説明 | 例 |
-|------|------|------|
-| `USER_NAME` | コンテナ内ユーザー名 | `developer` |
-| `USER_GROUP` | ユーザーグループ | `developer` |
-| `USER_UID` | ユーザー UID（host と一致） | `1000` |
-| `USER_GID` | ユーザー GID（host と一致） | `1000` |
-| `HARDWARE` | ハードウェアアーキテクチャ | `x86_64` |
-| `DOCKER_HUB_USER` | Docker Hub ユーザー名 | `myuser` |
-| `GPU_ENABLED` | GPU サポート | `true` / `false` |
-| `IMAGE_NAME` | イメージ名 | `osrf_ros_kinetic` |
-| `WS_PATH` | ワークスペースマウントパス | `/home/user/catkin_ws` |
-
-### 自動検出の詳細
-
-`setup.sh` がシステムパラメータを自動検出し `.env` を生成する。以下は 2 つの複雑な検出ロジックの記録。
-
-<details>
-<summary>クリックして検出ロジックを表示</summary>
-
-#### IMAGE_NAME の推論
-
-repo ディレクトリパスをスキャンし、イメージ名を推論：
-
-| 優先順 | ルール | パス例 | 結果 |
-|:------:|--------|--------|------|
-| 1 | 最後のディレクトリが `docker_*` に一致 → プレフィックスを除去 | `/home/user/docker_osrf_ros_kinetic` | `osrf_ros_kinetic` |
-| 2 | パスをスキャン（右→左）して `*_ws` を探す → プレフィックスを取得 | `/home/user/ros_kinetic_ws/docker_osrf_ros_kinetic` | `ros_kinetic` |
-| 3 | `.env.example` の `IMAGE_NAME` を読み取り | — | `.env.example` の値 |
-| 4 | フォールバック | — | `unknown` |
-
-#### WS_PATH ワークスペース検出
-
-3 つの戦略で検索し、ワークスペースマウントパスを特定：
-
-| 優先順 | 戦略 | 条件 | 結果 |
-|:------:|------|------|------|
-| 1 | 同階層スキャン | 現在のディレクトリが `docker_*` で同階層に `*_ws` あり | 同階層の `*_ws` 絶対パス |
-| 2 | 上方向へ走査 | パスを上方向にたどり最初の `*_ws` を探す | その `*_ws` ディレクトリ |
-| 3 | フォールバック | 上記いずれにも該当しない | repo の親ディレクトリ |
-
-**例**（戦略 1）：
-```
-/home/user/
-├── docker_osrf_ros_kinetic/ ← repo（現在のディレクトリ）
-└── osrf_ros_kinetic_ws/     ← WS_PATH として検出
-```
-
-**例**（戦略 2）：
-```
-/home/user/catkin_ws/src/docker_osrf_ros_kinetic/
-                     ↑ 上方向へ走査時に *_ws を発見
-```
-
-> `.env` が既に存在し `WS_PATH` が有効なディレクトリを指している場合、検出をスキップし既存値を保持。
-
-</details>
-
-### 言語設定
-
-`setup.sh` はデフォルトで英語メッセージを表示。環境変数で中国語に切り替え可能：
-
-```bash
-# .env を再生成（中国語プロンプト）
-rm .env
-SETUP_LANG=zh ./build.sh
+if [[ "${BASH_SOURCE[0]:-}" == "${0:-}" ]]; then
+    main "$@"
+fi
 ```
 
 ## アーキテクチャ
 
-### Docker Build Stage 関係図
+### 検出・生成フロー
 
 ```mermaid
 graph TD
-    EXT1["bats/bats:latest"]:::external
-    EXT2["alpine:latest"]:::external
-    EXT3["osrf/ros:kinetic-desktop-full-xenial"]:::external
+    A["setup.sh main()"]:::entry
 
-    EXT1 --> bats-src["bats-src"]:::tool
-    EXT2 --> bats-ext["bats-extensions"]:::tool
+    A --> B["detect_user_info\nUID / GID / username / group"]:::detect
+    A --> C["detect_hardware\nuname -m"]:::detect
+    A --> D["detect_docker_hub_user\ndocker info → USER → id -un"]:::detect
+    A --> E["detect_gpu\ndpkg-query nvidia-container-toolkit"]:::detect
+    A --> F["detect_image_name"]:::detect
+    A --> G["detect_ws_path"]:::detect
 
-    EXT3 --> sys["sys\nuser/group・locale・timezone"]:::stage
+    F --> F1{"最後のディレクトリが docker_*？"}:::decision
+    F1 -- "はい" --> F1R["プレフィックスを除去\n例: docker_ros_noetic → ros_noetic"]:::result
+    F1 -- "いいえ" --> F2{"パスに *_ws あり？"}:::decision
+    F2 -- "はい" --> F2R["プレフィックスを取得\n例: ros_noetic_ws → ros_noetic"]:::result
+    F2 -- "いいえ" --> F3{".env.example に\nIMAGE_NAME あり？"}:::decision
+    F3 -- "はい" --> F3R[".env.example の値を使用"]:::result
+    F3 -- "いいえ" --> F4R["'unknown'"]:::result
 
-    sys --> base["base\nsudo・git・vim・tmux・terminator・python2..."]:::stage
-    base --> devel["devel\nshell config"]:::stage
+    G --> G0{"既存 .env の\nWS_PATH は有効？"}:::decision
+    G0 -- "はい" --> G0R["既存値を保持"]:::result
+    G0 -- "いいえ" --> G1{"ディレクトリが docker_* で\n同階層に *_ws あり？"}:::decision
+    G1 -- "はい" --> G1R["同階層の *_ws パス"]:::result
+    G1 -- "いいえ" --> G2{"上位パスに\n*_ws あり？"}:::decision
+    G2 -- "はい" --> G2R["その *_ws ディレクトリ"]:::result
+    G2 -- "いいえ" --> G3R["親ディレクトリ"]:::result
 
-    bats-src --> test["test  ⚡ ephemeral\nsmoke_test/ 実行後に破棄"]:::ephemeral
-    bats-ext --> test
-    devel --> test
+    B --> H[".env"]:::output
+    C --> H
+    D --> H
+    E --> H
+    F1R --> H
+    F2R --> H
+    F3R --> H
+    F4R --> H
+    G0R --> H
+    G1R --> H
+    G2R --> H
+    G3R --> H
 
-    sys --> runtime-base["runtime-base\nsudo・tini"]:::stage
-    runtime-base --> runtime["runtime\n+ 必要な ROS packages"]:::stage
-
-    classDef external fill:#555,color:#fff,stroke:#999
-    classDef tool fill:#8B6914,color:#fff,stroke:#c8960c
-    classDef stage fill:#1a5276,color:#fff,stroke:#2980b9
-    classDef ephemeral fill:#6e2c00,color:#fff,stroke:#e67e22,stroke-dasharray:5 5
+    classDef entry fill:#1a5276,color:#fff,stroke:#2980b9
+    classDef detect fill:#8B6914,color:#fff,stroke:#c8960c
+    classDef decision fill:#7d3c98,color:#fff,stroke:#a569bd
+    classDef result fill:#1e8449,color:#fff,stroke:#27ae60
+    classDef output fill:#1e8449,color:#fff,stroke:#27ae60,stroke-width:3px
 ```
 
-### Stage 説明
+### IMAGE_NAME 推論（`detect_image_name`）
 
-| Stage | FROM | 用途 |
-|-------|------|------|
-| `bats-src` | `bats/bats:latest` | bats バイナリソース、出荷しない |
-| `bats-extensions` | `alpine:latest` | bats-support、bats-assert、出荷しない |
-| `sys` | `osrf/ros:kinetic-desktop-full-xenial` | OS 基盤：user/group、locale、timezone |
-| `base` | `sys` | 汎用開発ツール（apt） |
-| `devel` | `base` | フル開発環境、shell 設定含む |
-| `test` | `devel` | bats を注入、smoke_test/ を実行、ビルド後に破棄 |
-| `runtime-base` | `sys` | 最小化 runtime ベース、dev tools なし |
-| `runtime` | `runtime-base` | アプリに必要な ROS packages を追加 |
+repo ディレクトリパスをスキャンし、Docker イメージ名を推論：
 
-## スモークテスト
+| 優先順 | ルール | パス例 | 結果 |
+|:------:|--------|--------|------|
+| 1 | 最後のパスコンポーネントが `docker_*` に一致 → `docker_` プレフィックスを除去 | `/home/user/docker_ros_noetic` | `ros_noetic` |
+| 2 | パス全体を**右→左**にスキャンし `*_ws` ディレクトリを探す → `_ws` 前の名前を使用 | `/home/user/ros_noetic_ws/docker/ros_noetic` → `ros_noetic_ws` を検出 | `ros_noetic` |
+| 3 | repo ルートの `.env.example` から `IMAGE_NAME=` を読み取り | `.env.example` に `IMAGE_NAME=ros_noetic` が含まれる | `ros_noetic` |
+| 4 | フォールバック | 上記いずれにも該当しない | `unknown` |
 
-`smoke_test/ros_env.bats` に配置、`docker build --target test` 時に自動実行、合計 **34** 項目。
+### WS_PATH ワークスペース検出（`detect_ws_path`）
 
-<details>
-<summary>クリックしてテスト詳細を表示</summary>
+3 つの戦略で検索、順番に実行し最初に成功したものを使用：
 
-#### ROS 環境 (9)
+#### 戦略 1 — 同階層スキャン
 
-| テスト項目 | 説明 |
-|------------|------|
-| `ROS_DISTRO` | 値が `kinetic` |
-| `setup.bash` | ファイルが存在 |
-| `setup.bash` | source 可能 |
-| `rostopic` | ROS を source 後に使用可能 |
-| `rosrun` | ROS を source 後に使用可能 |
-| `rosnode` | ROS を source 後に使用可能 |
-| `roslaunch` | ROS を source 後に使用可能 |
-| `rosmsg` | ROS を source 後に使用可能 |
+**現在のディレクトリ名**が `docker_` で始まる場合、プレフィックスを除去し**同階層**の `{name}_ws` ディレクトリを探す。
 
-#### GUI ツール (3)
-
-| テスト項目 | 説明 |
-|------------|------|
-| `rviz` | ROS を source 後に使用可能（desktop-full） |
-| `rqt` | ROS を source 後に使用可能 |
-| `gazebo` | 使用可能 |
-
-#### 基本ツール (11)
-
-| テスト項目 | 説明 |
-|------------|------|
-| `python` | 使用可能 |
-| `pip` | 使用可能 |
-| `git` | 使用可能 |
-| `vim` | 使用可能 |
-| `curl` | 使用可能 |
-| `wget` | 使用可能 |
-| `tmux` | 使用可能 |
-| `tree` | 使用可能 |
-| `htop` | 使用可能 |
-| `sudo` | 使用可能 |
-| `sudo` | パスワードなしで実行 |
-
-#### システム (11)
-
-| テスト項目 | 説明 |
-|------------|------|
-| ユーザー | root ではない |
-| `HOME` | 設定済みで存在 |
-| タイムゾーン | `Asia/Taipei` |
-| `LANG` | `en_US.UTF-8` |
-| `LC_ALL` | `en_US.UTF-8` |
-| `NVIDIA_VISIBLE_DEVICES` | `all` |
-| `NVIDIA_DRIVER_CAPABILITIES` | `all` |
-| `entrypoint.sh` | 存在し実行可能 |
-| work ディレクトリ | 存在 |
-| work ディレクトリ | 書き込み可能 |
-| `bash-completion` | インストール済み |
-
-</details>
-
-## ディレクトリ構成
-
-```text
-osrf_ros_kinetic/
-├── compose.yaml                 # Docker Compose 定義
-├── Dockerfile                   # マルチステージビルド
-├── build.sh                     # ビルドスクリプト（任意のディレクトリから実行可能）
-├── run.sh                       # 起動スクリプト（任意のディレクトリから実行可能）
-├── exec.sh                      # 起動中のコンテナに接続
-├── entrypoint.sh                # コンテナエントリポイント
-├── .env.example                 # 環境変数テンプレート
-├── .github/workflows/           # CI/CD
-│   ├── main.yaml                # メインパイプライン
-│   ├── build-worker.yaml        # Docker build + smoke test
-│   └── release-worker.yaml      # GitHub Release
-├── smoke_test/                  # Bats 環境テスト
-│   ├── ros_env.bats
-│   └── test_helper.bash
-└── docker_setup_helper/         # git subtree (v1.2.0)
-    └── src/
-        ├── setup.sh             # システム検出 + .env 生成
-        └── config/              # shell/pip/terminator/tmux 設定
+```
+/home/user/
+├── docker_ros_noetic/    ← 現在のディレクトリが docker_* に一致
+│   └── (このリポジトリ)       プレフィックス除去 → "ros_noetic"
+└── ros_noetic_ws/        ← 同階層で ros_noetic_ws を検出 → WS_PATH
 ```
 
-## docker_setup_helper の更新
+#### 戦略 2 — 上方向走査
 
-```bash
-git subtree pull --prefix=docker_setup_helper \
-    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.x.x --squash
+**絶対パスを上方向にコンポーネントごとに**チェック。`_ws` で終わるコンポーネントがあればそのディレクトリを使用。
+
 ```
+/home/user/ros_noetic_ws/src/docker_ros_noetic/
+           ^^^^^^^^^^^^^^
+           上方向走査：docker_ros_noetic → src → ros_noetic_ws（一致！）
+           → WS_PATH = /home/user/ros_noetic_ws
+```
+
+#### 戦略 3 — 親ディレクトリフォールバック
+
+どちらの戦略も `_ws` ディレクトリを見つけられなかった場合、repo の**親ディレクトリ**にフォールバック。
+
+```
+/home/user/projects/ros_noetic/
+                    ^^^^^^^^^^^  ← repo（パス内に *_ws なし）
+           ^^^^^^^^              ← WS_PATH = /home/user/projects
+```
+
+> **注意：** `.env` が既に存在し `WS_PATH` が有効なディレクトリを指している場合、検出は完全にスキップされ既存値が保持されます。
+
+### CI パイプライン
+
+```mermaid
+graph LR
+    S["ci.sh"]:::entry --> SC["ShellCheck\n全 .sh ファイルをリント"]:::step
+    SC --> BT["Bats\n89 ユニットテスト"]:::step
+    BT --> KC["Kcov\nカバレッジレポート"]:::step
+    KC --> CC["Codecov\nアップロード"]:::step
+
+    classDef entry fill:#1a5276,color:#fff,stroke:#2980b9
+    classDef step fill:#8B6914,color:#fff,stroke:#c8960c
+```
+
+## 📄 ライセンス
+[GPL-3.0](../LICENSE)
