@@ -117,8 +117,12 @@ set -o allexport
 source "${FILE_PATH}/.env"
 set +o allexport
 
-# Allow X11 forwarding
-xhost "+SI:localuser:${USER_NAME}" >/dev/null 2>&1 || true
+# Allow X11 forwarding (X11 or XWayland)
+if [[ "${XDG_SESSION_TYPE:-x11}" == "wayland" ]]; then
+    xhost "+SI:localuser:${USER_NAME}" >/dev/null 2>&1 || true
+else
+    xhost +local: >/dev/null 2>&1 || true
+fi
 
 if [[ "${DETACH}" == true ]]; then
     docker compose -f "${FILE_PATH}/compose.yaml" \

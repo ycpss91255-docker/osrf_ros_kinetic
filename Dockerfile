@@ -149,6 +149,7 @@ COPY --from=lint-tools /usr/local/bin/hadolint /usr/local/bin/hadolint
 # Lint: ShellCheck (.sh) + Hadolint (Dockerfile)
 COPY .hadolint.yaml /lint/.hadolint.yaml
 COPY Dockerfile /lint/Dockerfile
+COPY compose.yaml /lint/compose.yaml
 COPY *.sh /lint/
 RUN shellcheck -S warning /lint/*.sh
 RUN cd /lint && hadolint Dockerfile
