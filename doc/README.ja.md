@@ -18,7 +18,7 @@
 - [Subtree としての利用](#subtree-としての利用)
 - [設定](#設定)
 - [アーキテクチャ](#アーキテクチャ)
-- [スモークテスト](#スモークテスト)
+- [smoke test](#smoke test)
 - [ディレクトリ構成](#ディレクトリ構成)
 - [docker\_template の更新](#docker_template-の更新)
 
@@ -272,7 +272,7 @@ graph TD
 | `runtime-base` | `sys` | 最小化 runtime ベース、dev tools なし |
 | `runtime` | `runtime-base` | アプリに必要な ROS packages を追加 |
 
-## スモークテスト
+## smoke test
 
 `test/smoke_test/` に配置、`docker build --target test` 時に自動実行、合計 **50** 項目。
 
