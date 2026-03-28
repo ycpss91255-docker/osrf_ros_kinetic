@@ -105,6 +105,8 @@ RUN apt-get update && \
         python-dev \
         python-setuptools \
         bash-completion \
+        # GPU/OpenGL (Intel + software fallback)
+        libgl1-mesa-dri \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
