@@ -241,12 +241,12 @@ graph TD
     EXT1 --> bats-src["bats-src"]:::tool
     EXT2 --> bats-ext["bats-extensions"]:::tool
 
-    EXT3 --> sys["sys\nuser/group・locale・timezone"]:::stage
+    EXT3 --> sys["sys\n用户/组・语言・时区"]:::stage
 
     sys --> base["base\nsudo・git・vim・tmux・terminator・python2..."]:::stage
     base --> devel["devel\nshell config"]:::stage
 
-    bats-src --> test["test  ⚡ ephemeral\nsmoke_test/ 执行后即丢"]:::ephemeral
+    bats-src --> test["test  ⚡ 临时性\nsmoke_test/ 执行后即丢"]:::ephemeral
     bats-ext --> test
     devel --> test
 
@@ -265,7 +265,7 @@ graph TD
 |-------|------|------|
 | `bats-src` | `bats/bats:latest` | bats 二进制来源，不出货 |
 | `bats-extensions` | `alpine:latest` | bats-support、bats-assert，不出货 |
-| `sys` | `osrf/ros:kinetic-desktop-full-xenial` | OS 基础：user/group、locale、timezone |
+| `sys` | `osrf/ros:kinetic-desktop-full-xenial` | OS 基础：用户/组、语言、时区 |
 | `base` | `sys` | 通用开发工具（apt） |
 | `devel` | `base` | 完整开发环境，含 shell 设置 |
 | `test` | `devel` | 注入 bats，执行 smoke_test/，build 完即丢 |

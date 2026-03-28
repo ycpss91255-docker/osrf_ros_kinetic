@@ -241,12 +241,12 @@ graph TD
     EXT1 --> bats-src["bats-src"]:::tool
     EXT2 --> bats-ext["bats-extensions"]:::tool
 
-    EXT3 --> sys["sys\nuser/group・locale・timezone"]:::stage
+    EXT3 --> sys["sys\nユーザー/グループ・ロケール・タイムゾーン"]:::stage
 
     sys --> base["base\nsudo・git・vim・tmux・terminator・python2..."]:::stage
     base --> devel["devel\nshell config"]:::stage
 
-    bats-src --> test["test  ⚡ ephemeral\nsmoke_test/ 実行後に破棄"]:::ephemeral
+    bats-src --> test["test  ⚡ 一時的\nsmoke_test/ 実行後に破棄"]:::ephemeral
     bats-ext --> test
     devel --> test
 
@@ -265,7 +265,7 @@ graph TD
 |-------|------|------|
 | `bats-src` | `bats/bats:latest` | bats バイナリソース、出荷しない |
 | `bats-extensions` | `alpine:latest` | bats-support、bats-assert、出荷しない |
-| `sys` | `osrf/ros:kinetic-desktop-full-xenial` | OS 基盤：user/group、locale、timezone |
+| `sys` | `osrf/ros:kinetic-desktop-full-xenial` | OS 基盤：ユーザー/グループ、ロケール、タイムゾーン |
 | `base` | `sys` | 汎用開発ツール（apt） |
 | `devel` | `base` | フル開発環境、shell 設定含む |
 | `test` | `devel` | bats を注入、smoke_test/ を実行、ビルド後に破棄 |
