@@ -26,11 +26,9 @@ services:
       - WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}
       - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/1000}
       - XAUTHORITY=${XAUTHORITY:-}
-    tmpfs:
-      - ${XDG_RUNTIME_DIR:-/run/user/1000}:uid=${USER_UID:-1000},gid=${USER_GID:-1000}
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
-      - ${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}:${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}:ro
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}:${XDG_RUNTIME_DIR:-/run/user/1000}:rw
       - ${XAUTHORITY:-/dev/null}:${XAUTHORITY:-/dev/null}:ro
       - /dev:/dev
       - ${WS_PATH}:/home/${USER_NAME}/work
@@ -81,8 +79,6 @@ services:
     ipc: host
     stdin_open: true
     tty: true
-    tmpfs:
-      - ${XDG_RUNTIME_DIR:-/run/user/1000}:uid=${USER_UID:-1000},gid=${USER_GID:-1000}
     volumes:
       - ${WS_PATH}:/home/${USER_NAME}/work
     profiles:
