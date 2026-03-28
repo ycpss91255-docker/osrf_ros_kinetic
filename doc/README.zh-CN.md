@@ -20,7 +20,7 @@
 - [架构](#架构)
 - [Smoke Tests](#smoke-tests)
 - [目录结构](#目录结构)
-- [更新 docker\_setup\_helper](#更新-docker_setup_helper)
+- [更新 docker\_template](#更新-docker_template)
 
 ---
 
@@ -31,7 +31,7 @@
 - **Smoke Test**：build 时自动跑 Bats 测试验证环境正确性
 - **Docker Compose**：一个 `compose.yaml` 管理所有 target
 - **自动检测**：`setup.sh` 自动检测 UID/GID/workspace，生成 `.env`
-- **模块化设置**：shell config 通过 [docker_setup_helper](https://github.com/ycpss91255-docker/docker_setup_helper) subtree 管理
+- **模块化设置**：shell config 通过 [docker_template](https://github.com/ycpss91255-docker/docker_template) subtree 管理
 - **X11 转发**：支持 GUI 应用程序（RViz、Terminator 等）
 
 > **注意**：此镜像使用 `osrf/ros`，仅支持 **x86_64**。如需 ARM/Raspberry Pi 支持，请使用 [ros_kinetic](https://github.com/ycpss91255-docker/ros_kinetic)。
@@ -116,7 +116,7 @@ my_robot_project/
 │   ├── run.sh
 │   ├── compose.yaml
 │   ├── Dockerfile
-│   └── docker_setup_helper/
+│   └── docker_template/
 └── ...
 ```
 
@@ -153,7 +153,7 @@ git subtree pull --prefix=docker/osrf_ros_kinetic \
 > **注意事项**：
 > - 本地修改由 git 正常追踪。
 > - 若上游改了你也修改过的文件，`subtree pull` 会产生 merge conflict，需手动解决。
-> - **不要**直接修改 subtree 内的 `docker_setup_helper/` — 那是 env repo 自己的 subtree。
+> - **不要**直接修改 subtree 内的 `docker_template/` — 那是 env repo 自己的 subtree。
 
 ## 设置
 
@@ -381,15 +381,15 @@ osrf_ros_kinetic/
 │   ├── ros_env.bats
 │   ├── script_help.bats
 │   └── test_helper.bash
-└── docker_setup_helper/         # git subtree (v1.4.0)
+└── docker_template/         # git subtree (v1.4.0)
     └── src/
         ├── setup.sh             # 系统检测 + .env 生成
         └── config/              # shell/pip/terminator/tmux 设置
 ```
 
-## 更新 docker_setup_helper
+## 更新 docker_template
 
 ```bash
-git subtree pull --prefix=docker_setup_helper \
-    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.4.0 --squash
+git subtree pull --prefix=docker_template \
+    https://github.com/ycpss91255-docker/docker_template.git v1.4.0 --squash
 ```

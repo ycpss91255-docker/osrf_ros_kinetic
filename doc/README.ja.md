@@ -20,7 +20,7 @@
 - [アーキテクチャ](#アーキテクチャ)
 - [スモークテスト](#スモークテスト)
 - [ディレクトリ構成](#ディレクトリ構成)
-- [docker\_setup\_helper の更新](#docker_setup_helper-の更新)
+- [docker\_template の更新](#docker_template-の更新)
 
 ---
 
@@ -31,7 +31,7 @@
 - **Smoke Test**：ビルド時に Bats テストを自動実行し環境の正確性を検証
 - **Docker Compose**：1 つの `compose.yaml` で全 target を管理
 - **自動検出**：`setup.sh` が UID/GID/workspace を自動検出し `.env` を生成
-- **モジュール化設定**：shell config は [docker_setup_helper](https://github.com/ycpss91255-docker/docker_setup_helper) subtree で管理
+- **モジュール化設定**：shell config は [docker_template](https://github.com/ycpss91255-docker/docker_template) subtree で管理
 - **X11 転送**：GUI アプリケーション対応（RViz、Terminator 等）
 
 > **注意**：このイメージは `osrf/ros` を使用しており、**x86_64** のみ対応。ARM/Raspberry Pi が必要な場合は [ros_kinetic](https://github.com/ycpss91255-docker/ros_kinetic) をご利用ください。
@@ -116,7 +116,7 @@ my_robot_project/
 │   ├── run.sh
 │   ├── compose.yaml
 │   ├── Dockerfile
-│   └── docker_setup_helper/
+│   └── docker_template/
 └── ...
 ```
 
@@ -153,7 +153,7 @@ git subtree pull --prefix=docker/osrf_ros_kinetic \
 > **注意事項**：
 > - ローカルの変更は git で通常通り追跡されます。
 > - 上流があなたが変更したファイルも変更した場合、`subtree pull` で merge conflict が発生する可能性があり、手動で解決が必要です。
-> - subtree 内の `docker_setup_helper/` は**直接変更しないでください** — env リポジトリ自身の subtree として管理されています。
+> - subtree 内の `docker_template/` は**直接変更しないでください** — env リポジトリ自身の subtree として管理されています。
 
 ## 設定
 
@@ -381,15 +381,15 @@ osrf_ros_kinetic/
 │   ├── ros_env.bats
 │   ├── script_help.bats
 │   └── test_helper.bash
-└── docker_setup_helper/         # git subtree (v1.4.0)
+└── docker_template/         # git subtree (v1.4.0)
     └── src/
         ├── setup.sh             # システム検出 + .env 生成
         └── config/              # shell/pip/terminator/tmux 設定
 ```
 
-## docker_setup_helper の更新
+## docker_template の更新
 
 ```bash
-git subtree pull --prefix=docker_setup_helper \
-    https://github.com/ycpss91255-docker/docker_setup_helper.git v1.4.0 --squash
+git subtree pull --prefix=docker_template \
+    https://github.com/ycpss91255-docker/docker_template.git v1.4.0 --squash
 ```
