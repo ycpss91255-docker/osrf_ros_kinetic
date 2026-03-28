@@ -246,7 +246,7 @@ graph TD
     sys --> base["base\nsudo・git・vim・tmux・terminator・python2..."]:::stage
     base --> devel["devel\nshell config"]:::stage
 
-    bats-src --> test["test  ⚡ ephemeral\nsmoke tests, discarded after build"]:::ephemeral
+    bats-src --> test["test (ephemeral)\nsmoke tests, discarded after build"]:::ephemeral
     bats-ext --> test
     devel --> test
 
