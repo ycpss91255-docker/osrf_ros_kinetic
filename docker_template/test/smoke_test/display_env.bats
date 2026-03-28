@@ -23,18 +23,19 @@ setup() {
 
 # -------------------- compose.yaml: display mounts --------------------
 
-@test "compose.yaml has XDG_RUNTIME_DIR tmpfs" {
-    run grep -E 'XDG_RUNTIME_DIR.*uid=' /lint/compose.yaml
-    assert_success
-}
-
-@test "compose.yaml mounts Wayland socket" {
-    run grep -E 'WAYLAND_DISPLAY.*:.*WAYLAND_DISPLAY' /lint/compose.yaml
+@test "compose.yaml mounts XDG_RUNTIME_DIR as rw" {
+    run grep -E 'XDG_RUNTIME_DIR.*:.*XDG_RUNTIME_DIR.*:rw' /lint/compose.yaml
     assert_success
 }
 
 @test "compose.yaml mounts XAUTHORITY volume" {
     run grep -E 'XAUTHORITY.*:.*XAUTHORITY' /lint/compose.yaml
+    assert_success
+}
+
+@test "compose.yaml has no consecutive duplicate keys" {
+    # Adjacent duplicate keys like two tmpfs: blocks = YAML error in docker compose
+    run bash -c "awk '/^ {4}[a-z]/{key=\$0} /^ {4}[a-z]/ && key==prev{print NR\": duplicate: \"\$0; found=1} {prev=key} END{exit found?1:0}' /lint/compose.yaml"
     assert_success
 }
 
