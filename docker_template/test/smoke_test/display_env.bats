@@ -21,10 +21,15 @@ setup() {
     assert_success
 }
 
-# -------------------- compose.yaml: Wayland volume mounts --------------------
+# -------------------- compose.yaml: display mounts --------------------
 
-@test "compose.yaml mounts XDG_RUNTIME_DIR volume" {
-    run grep -E 'XDG_RUNTIME_DIR.*:.*XDG_RUNTIME_DIR' /lint/compose.yaml
+@test "compose.yaml has XDG_RUNTIME_DIR tmpfs" {
+    run grep -E 'XDG_RUNTIME_DIR.*uid=' /lint/compose.yaml
+    assert_success
+}
+
+@test "compose.yaml mounts Wayland socket" {
+    run grep -E 'WAYLAND_DISPLAY.*:.*WAYLAND_DISPLAY' /lint/compose.yaml
     assert_success
 }
 
