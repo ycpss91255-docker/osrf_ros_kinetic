@@ -2,7 +2,7 @@
 
 **61 tests** total.
 
-## test/smoke_test/ros_env.bats (34)
+## test/smoke/ros_env.bats (34)
 
 ### ROS environment (9)
 
@@ -58,9 +58,9 @@
 | `work directory is writable` | Verify ~/work is writable |
 | `bash-completion is installed` | Verify bash-completion is installed |
 
-## Shared tests from docker_template
+## Shared tests from template
 
-### docker_template/test/smoke_test/script_help.bats (16)
+### template/test/smoke/script_help.bats (16)
 
 | Test | Description |
 |------|-------------|
@@ -81,7 +81,7 @@
 | `build.sh defaults to en for LANG=en_US.UTF-8` | Default to English |
 | `build.sh SETUP_LANG overrides LANG` | SETUP_LANG takes precedence over LANG |
 
-### docker_template/test/smoke_test/display_env.bats (11)
+### template/test/smoke/display_env.bats (11)
 
 | Test | Description |
 |------|-------------|

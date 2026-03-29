@@ -14,7 +14,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [v2.0.0] - 2026-03-28
 
 ### Added
-- migrate from docker_setup_helper to docker_template
+- migrate from docker_setup_helper to template
 - add Wayland display support for X11/Wayland dual compatibility
 
 ### Changed
@@ -56,7 +56,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - add config symlink to docker_setup_helper/src/config
 
 ### Changed
-- move smoke_test/ to test/smoke_test/
+- move smoke/ to test/smoke/
 - move READMEs to doc/, entrypoint.sh to script/
 
 ## [v1.4.0] - 2026-03-20

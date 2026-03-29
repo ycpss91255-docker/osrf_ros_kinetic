@@ -118,7 +118,7 @@ ARG USER
 ARG GROUP
 ARG ENTRYPOINT_FILE="script/entrypoint.sh"
 ARG CONFIG_DIR="/tmp/config"
-ARG CONFIG_SRC="docker_template/config"
+ARG CONFIG_SRC="template/config"
 
 COPY --chmod=0755 "./${ENTRYPOINT_FILE}" "/entrypoint.sh"
 COPY --chown="${USER}":"${GROUP}" --chmod=0755 "${CONFIG_SRC}" "${CONFIG_DIR}"
@@ -165,7 +165,7 @@ RUN ln -sf /opt/bats/bin/bats /usr/local/bin/bats
 ENV BATS_LIB_PATH="/usr/lib/bats"
 
 # Smoke test
-COPY docker_template/test/smoke_test/ /smoke_test/
+COPY template/test/smoke/ /smoke_test/
 COPY test/smoke_test/ /smoke_test/
 
 ARG USER

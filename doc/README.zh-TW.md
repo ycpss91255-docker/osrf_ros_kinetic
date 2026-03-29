@@ -20,7 +20,7 @@
 - [架構](#架構)
 - [Smoke Tests](#smoke-tests)
 - [目錄結構](#目錄結構)
-- [更新 docker\_template](#更新-docker_template)
+- [更新 docker\_template](#更新-template)
 
 ---
 
@@ -31,7 +31,7 @@
 - **Smoke Test**：build 時自動跑 Bats 測試驗證環境正確性
 - **Docker Compose**：一個 `compose.yaml` 管理所有 target
 - **自動偵測**：`setup.sh` 自動偵測 UID/GID/workspace，產生 `.env`
-- **模組化設定**：shell config 透過 [docker_template](https://github.com/ycpss91255-docker/docker_template) subtree 管理
+- **模組化設定**：shell config 透過 [template](https://github.com/ycpss91255-docker/template) subtree 管理
 - **X11 轉發**：支援 GUI 應用程式（RViz、Terminator 等）
 
 > **注意**：此映像使用 `osrf/ros`，僅支援 **x86_64**。如需 ARM/Raspberry Pi 支援，請使用 [ros_kinetic](https://github.com/ycpss91255-docker/ros_kinetic)。
@@ -116,7 +116,7 @@ my_robot_project/
 │   ├── run.sh
 │   ├── compose.yaml
 │   ├── Dockerfile
-│   └── docker_template/
+│   └── template/
 └── ...
 ```
 
@@ -153,7 +153,7 @@ git subtree pull --prefix=docker/osrf_ros_kinetic \
 > **注意事項**：
 > - 本地微調由 git 正常追蹤。
 > - 若上游改了你也修改過的檔案，`subtree pull` 會產生 merge conflict，需手動解決。
-> - **不要**直接修改 subtree 內的 `docker_template/` — 那是 env repo 自己的 subtree。
+> - **不要**直接修改 subtree 內的 `template/` — 那是 env repo 自己的 subtree。
 
 ## 設定
 
@@ -246,7 +246,7 @@ graph TD
     sys --> base["base\nsudo・git・vim・tmux・terminator・python2..."]:::stage
     base --> devel["devel\nshell config"]:::stage
 
-    bats-src --> test["test  ⚡ 暫時性\nsmoke_test/ 執行後丟棄"]:::ephemeral
+    bats-src --> test["test  ⚡ 暫時性\nsmoke/ 執行後丟棄"]:::ephemeral
     bats-ext --> test
     devel --> test
 
@@ -268,13 +268,13 @@ graph TD
 | `sys` | `osrf/ros:kinetic-desktop-full-xenial` | OS 基礎：使用者/群組、語系、時區 |
 | `base` | `sys` | 通用開發工具（apt） |
 | `devel` | `base` | 完整開發環境，含 shell 設定 |
-| `test` | `devel` | 注入 bats，執行 smoke_test/，build 完即丟 |
+| `test` | `devel` | 注入 bats，執行 smoke/，build 完即丟 |
 | `runtime-base` | `sys` | 最小化 runtime 基底，無 dev tools |
 | `runtime` | `runtime-base` | 加入應用所需 ROS packages |
 
 ## Smoke Tests
 
-位於 `test/smoke_test/`，在 `docker build --target test` 時自動執行，共 **50** 項。
+位於 `test/smoke/`，在 `docker build --target test` 時自動執行，共 **50** 項。
 
 <details>
 <summary>展開查看測試細項</summary>
@@ -377,19 +377,19 @@ osrf_ros_kinetic/
 │   ├── main.yaml                # 主 pipeline
 │   ├── build-worker.yaml        # Docker build + smoke test
 │   └── release-worker.yaml      # GitHub Release
-├── test/smoke_test/             # Bats 環境測試
+├── test/smoke/             # Bats 環境測試
 │   ├── ros_env.bats
 │   ├── script_help.bats
 │   └── test_helper.bash
-└── docker_template/         # git subtree (v1.4.0)
+└── template/         # git subtree (v1.4.0)
     └── src/
         ├── setup.sh             # 系統偵測 + .env 產生
         └── config/              # shell/pip/terminator/tmux 設定
 ```
 
-## 更新 docker_template
+## 更新 template
 
 ```bash
-git subtree pull --prefix=docker_template \
-    https://github.com/ycpss91255-docker/docker_template.git v1.4.0 --squash
+git subtree pull --prefix=template \
+    https://github.com/ycpss91255-docker/template.git v1.4.0 --squash
 ```

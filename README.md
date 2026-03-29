@@ -20,7 +20,7 @@
 - [Architecture](#architecture)
 - [Smoke Tests](#smoke-tests)
 - [Directory Structure](#directory-structure)
-- [Updating docker\_template](#updating-docker_template)
+- [Updating docker\_template](#updating-template)
 
 ---
 
@@ -31,7 +31,7 @@
 - **Smoke Test**: Bats tests run automatically during build to verify environment
 - **Docker Compose**: single `compose.yaml` manages all targets
 - **Auto-detection**: `setup.sh` auto-detects UID/GID/workspace, generates `.env`
-- **Modular config**: shell config managed via [docker_template](https://github.com/ycpss91255-docker/docker_template) subtree
+- **Modular config**: shell config managed via [template](https://github.com/ycpss91255-docker/template) subtree
 - **X11 forwarding**: supports GUI applications (RViz, Terminator, etc.)
 
 > **Note**: This image uses `osrf/ros` which only supports **x86_64**. For ARM/Raspberry Pi, use [ros_kinetic](https://github.com/ycpss91255-docker/ros_kinetic) instead.
@@ -116,7 +116,7 @@ my_robot_project/
 │   ├── run.sh
 │   ├── compose.yaml
 │   ├── Dockerfile
-│   └── docker_template/
+│   └── template/
 └── ...
 ```
 
@@ -153,7 +153,7 @@ git subtree pull --prefix=docker/osrf_ros_kinetic \
 > **Notes**:
 > - Local modifications are tracked by git normally.
 > - `subtree pull` may produce merge conflicts if upstream changed the same files you modified locally.
-> - Do **not** modify `docker_template/` inside the subtree — it is managed by the env repo's own subtree.
+> - Do **not** modify `template/` inside the subtree — it is managed by the env repo's own subtree.
 
 ## Configuration
 
@@ -268,13 +268,13 @@ graph TD
 | `sys` | `osrf/ros:kinetic-desktop-full-xenial` | OS base: user/group, locale, timezone |
 | `base` | `sys` | Common dev tools (apt) |
 | `devel` | `base` | Full dev environment with shell config |
-| `test` | `devel` | Injects bats, runs smoke_test/, discarded after build |
+| `test` | `devel` | Injects bats, runs smoke/, discarded after build |
 | `runtime-base` | `sys` | Minimal runtime base, no dev tools |
 | `runtime` | `runtime-base` | Adds required ROS packages |
 
 ## Smoke Tests
 
-Located in `test/smoke_test/`, executed automatically during `docker build --target test` — **50 tests** total.
+Located in `test/smoke/`, executed automatically during `docker build --target test` — **50 tests** total.
 
 <details>
 <summary>Click to expand test details</summary>
@@ -377,19 +377,19 @@ osrf_ros_kinetic/
 │   ├── main.yaml                # Main pipeline
 │   ├── build-worker.yaml        # Docker build + smoke test
 │   └── release-worker.yaml      # GitHub Release
-├── test/smoke_test/             # Bats environment tests
+├── test/smoke/             # Bats environment tests
 │   ├── ros_env.bats
 │   ├── script_help.bats
 │   └── test_helper.bash
-└── docker_template/         # git subtree (v1.4.0)
+└── template/         # git subtree (v1.4.0)
     └── src/
         ├── setup.sh             # System detection + .env generation
         └── config/              # shell/pip/terminator/tmux config
 ```
 
-## Updating docker_template
+## Updating template
 
 ```bash
-git subtree pull --prefix=docker_template \
-    https://github.com/ycpss91255-docker/docker_template.git v1.4.0 --squash
+git subtree pull --prefix=template \
+    https://github.com/ycpss91255-docker/template.git v1.4.0 --squash
 ```
