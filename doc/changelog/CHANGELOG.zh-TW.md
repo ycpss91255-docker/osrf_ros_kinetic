@@ -14,7 +14,7 @@
 ## [v2.0.0] - 2026-03-28
 
 ### 新增
-- migrate from docker_setup_helper to docker_template
+- migrate from docker_setup_helper to template
 - add Wayland display support for X11/Wayland dual compatibility
 
 ### 變更
@@ -56,7 +56,7 @@
 - add config symlink to docker_setup_helper/src/config
 
 ### 變更
-- move smoke_test/ to test/smoke_test/
+- move smoke/ to test/smoke/
 - move READMEs to doc/, entrypoint.sh to script/
 
 ## [v1.4.0] - 2026-03-20

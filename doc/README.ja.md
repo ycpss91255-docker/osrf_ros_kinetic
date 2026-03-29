@@ -20,7 +20,7 @@
 - [アーキテクチャ](#アーキテクチャ)
 - [smoke test](#smoke test)
 - [ディレクトリ構成](#ディレクトリ構成)
-- [docker\_template の更新](#docker_template-の更新)
+- [docker\_template の更新](#template-の更新)
 
 ---
 
@@ -31,7 +31,7 @@
 - **Smoke Test**：ビルド時に Bats テストを自動実行し環境の正確性を検証
 - **Docker Compose**：1 つの `compose.yaml` で全 target を管理
 - **自動検出**：`setup.sh` が UID/GID/workspace を自動検出し `.env` を生成
-- **モジュール化設定**：shell config は [docker_template](https://github.com/ycpss91255-docker/docker_template) subtree で管理
+- **モジュール化設定**：shell config は [template](https://github.com/ycpss91255-docker/template) subtree で管理
 - **X11 転送**：GUI アプリケーション対応（RViz、Terminator 等）
 
 > **注意**：このイメージは `osrf/ros` を使用しており、**x86_64** のみ対応。ARM/Raspberry Pi が必要な場合は [ros_kinetic](https://github.com/ycpss91255-docker/ros_kinetic) をご利用ください。
@@ -116,7 +116,7 @@ my_robot_project/
 │   ├── run.sh
 │   ├── compose.yaml
 │   ├── Dockerfile
-│   └── docker_template/
+│   └── template/
 └── ...
 ```
 
@@ -153,7 +153,7 @@ git subtree pull --prefix=docker/osrf_ros_kinetic \
 > **注意事項**：
 > - ローカルの変更は git で通常通り追跡されます。
 > - 上流があなたが変更したファイルも変更した場合、`subtree pull` で merge conflict が発生する可能性があり、手動で解決が必要です。
-> - subtree 内の `docker_template/` は**直接変更しないでください** — env リポジトリ自身の subtree として管理されています。
+> - subtree 内の `template/` は**直接変更しないでください** — env リポジトリ自身の subtree として管理されています。
 
 ## 設定
 
@@ -246,7 +246,7 @@ graph TD
     sys --> base["base\nsudo・git・vim・tmux・terminator・python2..."]:::stage
     base --> devel["devel\nshell config"]:::stage
 
-    bats-src --> test["test  ⚡ 一時的\nsmoke_test/ 実行後に破棄"]:::ephemeral
+    bats-src --> test["test  ⚡ 一時的\nsmoke/ 実行後に破棄"]:::ephemeral
     bats-ext --> test
     devel --> test
 
@@ -268,13 +268,13 @@ graph TD
 | `sys` | `osrf/ros:kinetic-desktop-full-xenial` | OS 基盤：ユーザー/グループ、ロケール、タイムゾーン |
 | `base` | `sys` | 汎用開発ツール（apt） |
 | `devel` | `base` | フル開発環境、shell 設定含む |
-| `test` | `devel` | bats を注入、smoke_test/ を実行、ビルド後に破棄 |
+| `test` | `devel` | bats を注入、smoke/ を実行、ビルド後に破棄 |
 | `runtime-base` | `sys` | 最小化 runtime ベース、dev tools なし |
 | `runtime` | `runtime-base` | アプリに必要な ROS packages を追加 |
 
 ## smoke test
 
-`test/smoke_test/` に配置、`docker build --target test` 時に自動実行、合計 **50** 項目。
+`test/smoke/` に配置、`docker build --target test` 時に自動実行、合計 **50** 項目。
 
 <details>
 <summary>クリックしてテスト詳細を表示</summary>
@@ -377,19 +377,19 @@ osrf_ros_kinetic/
 │   ├── main.yaml                # メインパイプライン
 │   ├── build-worker.yaml        # Docker build + smoke test
 │   └── release-worker.yaml      # GitHub Release
-├── test/smoke_test/             # Bats 環境テスト
+├── test/smoke/             # Bats 環境テスト
 │   ├── ros_env.bats
 │   ├── script_help.bats
 │   └── test_helper.bash
-└── docker_template/         # git subtree (v1.4.0)
+└── template/         # git subtree (v1.4.0)
     └── src/
         ├── setup.sh             # システム検出 + .env 生成
         └── config/              # shell/pip/terminator/tmux 設定
 ```
 
-## docker_template の更新
+## template の更新
 
 ```bash
-git subtree pull --prefix=docker_template \
-    https://github.com/ycpss91255-docker/docker_template.git v1.4.0 --squash
+git subtree pull --prefix=template \
+    https://github.com/ycpss91255-docker/template.git v1.4.0 --squash
 ```
