@@ -18,7 +18,7 @@
 - [Subtree としての利用](#subtree-としての利用)
 - [設定](#設定)
 - [アーキテクチャ](#アーキテクチャ)
-- [smoke test](#smoke test)
+- [Smoke Tests](#smoke-tests)
 - [ディレクトリ構成](#ディレクトリ構成)
 - [docker\_template の更新](#template-の更新)
 
@@ -272,88 +272,9 @@ graph TD
 | `runtime-base` | `sys` | 最小化 runtime ベース、dev tools なし |
 | `runtime` | `runtime-base` | アプリに必要な ROS packages を追加 |
 
-## smoke test
+## Smoke Tests
 
-`test/smoke/` に配置、`docker build --target test` 時に自動実行、合計 **50** 項目。
-
-<details>
-<summary>クリックしてテスト詳細を表示</summary>
-
-#### ROS 環境 (9)
-
-| テスト項目 | 説明 |
-|------------|------|
-| `ROS_DISTRO` | 値が `kinetic` |
-| `setup.bash` | ファイルが存在 |
-| `setup.bash` | source 可能 |
-| `rostopic` | ROS を source 後に使用可能 |
-| `rosrun` | ROS を source 後に使用可能 |
-| `rosnode` | ROS を source 後に使用可能 |
-| `roslaunch` | ROS を source 後に使用可能 |
-| `rosmsg` | ROS を source 後に使用可能 |
-
-#### GUI ツール (3)
-
-| テスト項目 | 説明 |
-|------------|------|
-| `rviz` | ROS を source 後に使用可能（desktop-full） |
-| `rqt` | ROS を source 後に使用可能 |
-| `gazebo` | 使用可能 |
-
-#### 基本ツール (11)
-
-| テスト項目 | 説明 |
-|------------|------|
-| `python` | 使用可能 |
-| `pip` | 使用可能 |
-| `git` | 使用可能 |
-| `vim` | 使用可能 |
-| `curl` | 使用可能 |
-| `wget` | 使用可能 |
-| `tmux` | 使用可能 |
-| `tree` | 使用可能 |
-| `htop` | 使用可能 |
-| `sudo` | 使用可能 |
-| `sudo` | パスワードなしで実行 |
-
-#### システム (11)
-
-| テスト項目 | 説明 |
-|------------|------|
-| ユーザー | root ではない |
-| `HOME` | 設定済みで存在 |
-| タイムゾーン | `Asia/Taipei` |
-| `LANG` | `en_US.UTF-8` |
-| `LC_ALL` | `en_US.UTF-8` |
-| `NVIDIA_VISIBLE_DEVICES` | `all` |
-| `NVIDIA_DRIVER_CAPABILITIES` | `all` |
-| `entrypoint.sh` | 存在し実行可能 |
-| work ディレクトリ | 存在 |
-| work ディレクトリ | 書き込み可能 |
-| `bash-completion` | インストール済み |
-
-#### スクリプト help (16)
-
-| テスト項目 | 説明 |
-|------------|------|
-| `build.sh -h` | 終了コード 0 |
-| `build.sh --help` | 終了コード 0 |
-| `build.sh -h` | usage を表示 |
-| `run.sh -h` | 終了コード 0 |
-| `run.sh --help` | 終了コード 0 |
-| `run.sh -h` | usage を表示 |
-| `exec.sh -h` | 終了コード 0 |
-| `exec.sh --help` | 終了コード 0 |
-| `exec.sh -h` | usage を表示 |
-| `stop.sh -h` | 終了コード 0 |
-| `stop.sh --help` | 終了コード 0 |
-| `stop.sh -h` | usage を表示 |
-| `build.sh -h` | `LANG=zh_TW.UTF-8` で zh を検出 |
-| `build.sh -h` | `LANG=ja_JP.UTF-8` で ja を検出 |
-| `build.sh -h` | `LANG=en_US.UTF-8` でデフォルト en |
-| `build.sh -h` | `SETUP_LANG` が `LANG` を上書き |
-
-</details>
+詳細は [TEST.md](../test/TEST.md) を参照。
 
 ## ディレクトリ構成
 
