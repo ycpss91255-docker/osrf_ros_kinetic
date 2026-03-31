@@ -65,13 +65,15 @@ RUN if getent group "${GID}" >/dev/null; then \
     echo "${USER} ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/${USER}"; \
     chmod 0440 "/etc/sudoers.d/${USER}"
 
-# Setup locale and timezone
+# Setup locale, timezone and replace apt urls (Taiwan mirror)
 ENV TZ="Asia/Taipei"
 ENV LC_ALL="en_US.UTF-8"
 ENV LANG="en_US.UTF-8"
 ENV LANGUAGE="en_US:en"
 
-RUN apt-get update && \
+ARG APT_MIRROR_UBUNTU="tw.archive.ubuntu.com"
+RUN sed -i "s@archive.ubuntu.com@${APT_MIRROR_UBUNTU}@g" /etc/apt/sources.list || true && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
         tzdata \
         locales && \

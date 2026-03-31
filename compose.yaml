@@ -9,6 +9,7 @@ services:
         ROS_DISTRO: ${ROS_DISTRO:-kinetic}
         ROS_TAG: ${ROS_TAG:-desktop-full}
         UBUNTU_CODENAME: ${UBUNTU_CODENAME:-xenial}
+        APT_MIRROR_UBUNTU: ${APT_MIRROR_UBUNTU:-tw.archive.ubuntu.com}
         USER: ${USER_NAME}
         GROUP: ${USER_GROUP}
         UID: ${USER_UID}
