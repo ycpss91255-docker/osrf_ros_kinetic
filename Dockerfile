@@ -122,6 +122,14 @@ ARG ENTRYPOINT_FILE="script/entrypoint.sh"
 ARG CONFIG_DIR="/tmp/config"
 ARG CONFIG_SRC="template/config"
 
+# PlotJuggler
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ros-kinetic-plotjuggler \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --chmod=0755 "./${ENTRYPOINT_FILE}" "/entrypoint.sh"
 COPY --chown="${USER}":"${GROUP}" --chmod=0755 "${CONFIG_SRC}" "${CONFIG_DIR}"
 
