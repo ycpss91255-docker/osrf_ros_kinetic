@@ -1,316 +1,267 @@
-# OSRF ROS Kinetic Docker Environment
+# template
 
-**[English](README.md)** | **[繁體中文](doc/README.zh-TW.md)** | **[简体中文](doc/README.zh-CN.md)** | **[日本語](doc/README.ja.md)**
+[![Self Test](https://github.com/ycpss91255-docker/template/actions/workflows/self-test.yaml/badge.svg)](https://github.com/ycpss91255-docker/template/actions/workflows/self-test.yaml)
+[![codecov](https://codecov.io/gh/ycpss91255-docker/template/branch/main/graph/badge.svg)](https://codecov.io/gh/ycpss91255-docker/template)
 
-> **TL;DR** — One-command ROS 1 Kinetic containerized dev environment based on `osrf/ros` desktop-full image (x86_64 only). Auto-detects UID/GID, supports X11 GUI forwarding, multi-stage build with smoke test verification.
->
-> ```bash
-> ./build.sh && ./run.sh
-> ```
+![Language](https://img.shields.io/badge/Language-Bash-blue?style=flat-square)
+![Testing](https://img.shields.io/badge/Testing-Bats-orange?style=flat-square)
+![ShellCheck](https://img.shields.io/badge/ShellCheck-Compliant-brightgreen?style=flat-square)
+![Coverage](https://img.shields.io/badge/Coverage-Kcov-blueviolet?style=flat-square)
+[![License](https://img.shields.io/badge/License-GPL--3.0-yellow?style=flat-square)](./LICENSE)
+
+Shared template for Docker container repos in the [ycpss91255-docker](https://github.com/ycpss91255-docker) organization.
+
+**[English](README.md)** | **[繁體中文](doc/readme/README.zh-TW.md)** | **[简体中文](doc/readme/README.zh-CN.md)** | **[日本語](doc/readme/README.ja.md)**
 
 ---
 
 ## Table of Contents
 
-- [Features](#features)
+- [TL;DR](#tldr)
+- [Overview](#overview)
 - [Quick Start](#quick-start)
-- [Usage](#usage)
-- [Usage as Subtree](#usage-as-subtree)
-- [Configuration](#configuration)
-- [Architecture](#architecture)
-- [Smoke Tests](#smoke-tests)
+- [CI Reusable Workflows](#ci-reusable-workflows)
+- [Running Template Tests](#running-template-tests)
+- [Tests](#tests)
 - [Directory Structure](#directory-structure)
-- [Updating docker\_template](#updating-template)
 
 ---
 
-## Features
+## TL;DR
 
-- **OSRF desktop-full**: full ROS desktop environment including RViz, Gazebo, etc.
-- **Multi-stage build**: sys → base → devel / test / runtime, choose as needed
-- **Smoke Test**: Bats tests run automatically during build to verify environment
-- **Docker Compose**: single `compose.yaml` manages all targets
-- **Auto-detection**: `setup.sh` auto-detects UID/GID/workspace, generates `.env`
-- **Modular config**: shell config managed via [template](https://github.com/ycpss91255-docker/template) subtree
-- **X11 forwarding**: supports GUI applications (RViz, Terminator, etc.)
+```bash
+# New repo: add subtree + init
+git subtree add --prefix=template \
+    git@github.com:ycpss91255-docker/template.git main --squash
+./template/init.sh
 
-> **Note**: This image uses `osrf/ros` which only supports **x86_64**. For ARM/Raspberry Pi, use [ros_kinetic](https://github.com/ycpss91255-docker/ros_kinetic) instead.
+# Upgrade to latest
+make upgrade-check   # check
+make upgrade         # pull + update version + workflow tag
+
+# Run CI
+make test            # ShellCheck + Bats + Kcov
+make help            # show all commands
+```
+
+## Overview
+
+This repo consolidates shared scripts, tests, and CI workflows used across all Docker container repos. Instead of maintaining identical files in 15+ repos, each repo pulls this template as a **git subtree** and uses symlinks.
+
+### Architecture
+
+```mermaid
+graph TB
+    subgraph template["template (shared repo)"]
+        scripts[".hadolint.yaml / Makefile.ci / compose.yaml"]
+        smoke["test/smoke/<br/>script_help.bats<br/>display_env.bats"]
+        config["config/<br/>bashrc / tmux / terminator / pip"]
+        mgmt["script/docker/<br/>build.sh / run.sh / exec.sh / stop.sh / setup.sh"]
+        workflows["Reusable Workflows<br/>build-worker.yaml<br/>release-worker.yaml"]
+    end
+
+    subgraph consumer["Docker Repo (e.g. ros_noetic)"]
+        symlinks["build.sh → template/script/docker/build.sh<br/>run.sh → template/script/docker/run.sh<br/>exec.sh / stop.sh / .hadolint.yaml"]
+        dockerfile["Dockerfile<br/>compose.yaml<br/>.env.example<br/>script/entrypoint.sh"]
+        repo_test["test/smoke/<br/>ros_env.bats (repo-specific)"]
+        main_yaml["main.yaml<br/>→ calls reusable workflows"]
+    end
+
+    template -- "git subtree" --> consumer
+    scripts -. symlink .-> symlinks
+    smoke -. "Dockerfile COPY" .-> repo_test
+    workflows -. "@tag reference" .-> main_yaml
+```
+
+### CI/CD Flow
+
+```mermaid
+flowchart LR
+    subgraph local["Local"]
+        build_test["./build.sh test"]
+        make_test["make test"]
+    end
+
+    subgraph ci_container["CI Container (kcov/kcov)"]
+        shellcheck["ShellCheck"]
+        hadolint["Hadolint"]
+        bats["Bats smoke tests"]
+    end
+
+    subgraph github["GitHub Actions"]
+        build_worker["build-worker.yaml<br/>(from template)"]
+        release_worker["release-worker.yaml<br/>(from template)"]
+    end
+
+    build_test --> ci_container
+    make_test -->|"script/ci/ci.sh"| ci_container
+    shellcheck --> hadolint --> bats
+
+    push["git push / PR"] --> build_worker
+    build_worker -->|"docker build test"| ci_container
+    tag["git tag v*"] --> release_worker
+    release_worker -->|"tar.gz + zip"| release["GitHub Release"]
+```
+
+### What's included
+
+| File | Description |
+|------|-------------|
+| `build.sh` | Build containers (calls `script/docker/setup.sh` for `.env` generation) |
+| `run.sh` | Run containers (X11/Wayland support) |
+| `exec.sh` | Exec into running containers |
+| `stop.sh` | Stop and remove containers |
+| `script/docker/setup.sh` | Auto-detect system parameters and generate `.env` |
+| `config/` | Shell configs (bashrc, tmux, terminator, pip) |
+| `test/smoke/` | Shared smoke tests for repos |
+| `.hadolint.yaml` | Shared Hadolint rules |
+| `Makefile` | Repo entry (`make build`, `make run`, `make stop`, etc.) |
+| `Makefile.ci` | Template CI entry (`make test`, `make -f Makefile.ci lint`, etc.) |
+| `init.sh` | First-time symlink setup |
+| `upgrade.sh` | Subtree version upgrade |
+| `script/ci/ci.sh` | CI pipeline (local + remote) |
+| `.github/workflows/` | Reusable CI workflows (build + release) |
+
+### What stays in each repo (not shared)
+
+- `Dockerfile`
+- `compose.yaml`
+- `.env.example`
+- `script/entrypoint.sh`
+- `doc/` and `README.md`
+- Repo-specific smoke tests
 
 ## Quick Start
 
-```bash
-# 1. Build dev environment (auto-generates .env on first run)
-./build.sh
-
-# 2. Start container
-./run.sh
-
-# 3. Enter a running container
-./exec.sh
-
-# Or use docker compose directly
-docker compose up -d devel
-docker compose exec devel bash
-docker compose down
-```
-
-## Usage
-
-### Development (devel)
-
-Full dev environment with tmux, terminator, vim, git, etc.
+### Adding to a new repo
 
 ```bash
-./build.sh                       # Build (default: devel)
-./build.sh --no-env test         # Build without refreshing .env
-./run.sh                         # Start (default: devel)
-./run.sh --no-env -d             # Background start, skip .env refresh
-./exec.sh                        # Enter running container
+# 1. Add subtree
+git subtree add --prefix=template \
+    git@github.com:ycpss91255-docker/template.git main --squash
 
-docker compose build devel       # Equivalent command
-docker compose run --rm devel    # One-off start
-docker compose up -d devel       # Start in background
-docker compose exec devel bash   # Enter running container
+# 2. Initialize symlinks (one command)
+./template/init.sh
 ```
 
-### Testing (test)
-
-Smoke tests run automatically during build; build fails if tests fail.
+### Updating
 
 ```bash
-./build.sh test
-# or
-docker compose --profile test build test
+# Check if update available
+make upgrade-check
+
+# Upgrade to latest (subtree pull + version file + workflow tag)
+make upgrade
+
+# Or specify a version
+./template/upgrade.sh v0.3.0
 ```
 
-### Deployment (runtime)
+## CI Reusable Workflows
 
-Minimal image with only essential ROS packages.
+Repos replace local `build-worker.yaml` / `release-worker.yaml` with calls to this repo's reusable workflows:
 
+```yaml
+# .github/workflows/main.yaml
+jobs:
+  call-docker-build:
+    uses: ycpss91255-docker/template/.github/workflows/build-worker.yaml@v1
+    with:
+      image_name: ros_noetic
+      build_args: |
+        ROS_DISTRO=noetic
+        ROS_TAG=ros-base
+        UBUNTU_CODENAME=focal
+
+  call-release:
+    needs: call-docker-build
+    if: startsWith(github.ref, 'refs/tags/')
+    uses: ycpss91255-docker/template/.github/workflows/release-worker.yaml@v1
+    with:
+      archive_name_prefix: ros_noetic
+```
+
+### build-worker.yaml inputs
+
+| Input | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `image_name` | string | yes | - | Container image name |
+| `build_args` | string | no | `""` | Multi-line KEY=VALUE build args |
+| `build_runtime` | boolean | no | `true` | Whether to build runtime stage |
+
+### release-worker.yaml inputs
+
+| Input | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `archive_name_prefix` | string | yes | - | Archive name prefix |
+| `extra_files` | string | no | `""` | Space-separated extra files |
+
+## Running Template Tests
+
+Using `Makefile.ci` (from template root):
 ```bash
-./build.sh runtime
-./run.sh runtime
-# or
-docker compose --profile runtime build runtime
-docker compose --profile runtime run --rm runtime
+make -f Makefile.ci test        # Full CI (ShellCheck + Bats + Kcov) via docker compose
+make -f Makefile.ci lint        # ShellCheck only
+make -f Makefile.ci clean       # Remove coverage reports
+make help        # Show repo targets
+make -f Makefile.ci help  # Show CI targets
 ```
 
-## Usage as Subtree
-
-This repo can be embedded into another project via `git subtree`, letting the project carry its own Docker dev environment.
-
-### Adding to Your Project
-
+Or directly:
 ```bash
-git subtree add --prefix=docker/osrf_ros_kinetic \
-    https://github.com/ycpss91255-docker/osrf_ros_kinetic.git main --squash
+./script/ci/ci.sh          # Full CI via docker compose
+./script/ci/ci.sh --ci     # Run inside container (used by compose)
 ```
 
-Example directory structure after adding:
-
-```text
-my_robot_project/
-├── src/                         # Project source code
-├── docker/osrf_ros_kinetic/     # Subtree
-│   ├── build.sh
-│   ├── run.sh
-│   ├── compose.yaml
-│   ├── Dockerfile
-│   └── template/
-└── ...
-```
-
-### Building and Running
-
-```bash
-cd docker/osrf_ros_kinetic
-./build.sh && ./run.sh
-```
-
-`build.sh` uses `--base-path` internally, so path detection works correctly regardless of where you run it from.
-
-### Workspace Detection
-
-<details>
-<summary>Click to expand detection behavior when used as subtree</summary>
-
-When the subtree sits at `my_robot_project/docker/osrf_ros_kinetic/`:
-
-- **IMAGE_NAME**: directory name is `osrf_ros_kinetic` (not `docker_*`), so detection falls through to `.env.example` which has `IMAGE_NAME=osrf_ros_kinetic` — works correctly.
-- **WS_PATH**: strategy 1 (sibling scan) and strategy 2 (path traversal) may not match, so strategy 3 (fallback) resolves to the parent directory (`my_robot_project/docker/`).
-
-**Recommendation**: after the first build, edit `WS_PATH` in `.env` to point to your actual workspace. The value is preserved on subsequent builds.
-
-</details>
-
-### Syncing with Upstream
-
-```bash
-git subtree pull --prefix=docker/osrf_ros_kinetic \
-    https://github.com/ycpss91255-docker/osrf_ros_kinetic.git main --squash
-```
-
-> **Notes**:
-> - Local modifications are tracked by git normally.
-> - `subtree pull` may produce merge conflicts if upstream changed the same files you modified locally.
-> - Do **not** modify `template/` inside the subtree — it is managed by the env repo's own subtree.
-
-## Configuration
-
-### .env Parameters
-
-Automatically refreshed on every `./build.sh` or `./run.sh` (use `--no-env` to skip). Refer to `.env.example` to create manually:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `USER_NAME` | Container username | `developer` |
-| `USER_GROUP` | User group | `developer` |
-| `USER_UID` | User UID (matches host) | `1000` |
-| `USER_GID` | User GID (matches host) | `1000` |
-| `HARDWARE` | Hardware architecture | `x86_64` |
-| `DOCKER_HUB_USER` | Docker Hub username | `myuser` |
-| `GPU_ENABLED` | GPU support | `true` / `false` |
-| `IMAGE_NAME` | Image name | `osrf_ros_kinetic` |
-| `WS_PATH` | Workspace mount path | `/home/user/catkin_ws` |
-
-### Auto-detection Details
-
-`setup.sh` automatically detects system parameters and generates `.env`. The two most complex detections are documented below.
-
-<details>
-<summary>Click to expand detection logic</summary>
-
-#### IMAGE_NAME Inference
-
-Scans the repo directory path to derive the image name:
-
-| Priority | Rule | Example Path | Result |
-|:--------:|------|-------------|--------|
-| 1 | Last directory matches `docker_*` → strip prefix | `/home/user/docker_osrf_ros_kinetic` | `osrf_ros_kinetic` |
-| 2 | Scan path (right→left) for `*_ws` → use prefix | `/home/user/ros_kinetic_ws/docker_osrf_ros_kinetic` | `ros_kinetic` |
-| 3 | Read `IMAGE_NAME` from `.env.example` | — | value in `.env.example` |
-| 4 | Fallback | — | `unknown` |
-
-#### WS_PATH Workspace Detection
-
-Three-strategy search to locate the workspace mount path:
-
-| Priority | Strategy | Condition | Result |
-|:--------:|----------|-----------|--------|
-| 1 | Sibling scan | Current dir is `docker_*` and sibling `*_ws` exists | Sibling `*_ws` absolute path |
-| 2 | Path traversal | Walk path upward, find first `*_ws` component | That `*_ws` directory |
-| 3 | Fallback | None of the above | Parent directory of repo |
-
-**Example** (strategy 1):
-```
-/home/user/
-├── docker_osrf_ros_kinetic/ ← repo (current dir)
-└── osrf_ros_kinetic_ws/     ← detected as WS_PATH
-```
-
-**Example** (strategy 2):
-```
-/home/user/catkin_ws/src/docker_osrf_ros_kinetic/
-                     ↑ found *_ws while traversing upward
-```
-
-> If `.env` already exists and `WS_PATH` points to a valid directory, detection is skipped and the existing value is preserved.
-
-</details>
-
-### Language
-
-`setup.sh` displays messages in English by default. Use `--lang zh` for Chinese when running `build.sh`:
-
-```bash
-# Re-generate .env with Chinese prompts
-rm .env
-SETUP_LANG=zh ./build.sh
-```
-
-## Architecture
-
-### Docker Build Stage Diagram
-
-```mermaid
-graph TD
-    EXT1["bats/bats:latest"]:::external
-    EXT2["alpine:latest"]:::external
-    EXT3["osrf/ros:kinetic-desktop-full-xenial"]:::external
-
-    EXT1 --> bats-src["bats-src"]:::tool
-    EXT2 --> bats-ext["bats-extensions"]:::tool
-
-    EXT3 --> sys["sys\nuser/group・locale・timezone"]:::stage
-
-    sys --> base["base\nsudo・git・vim・tmux・terminator・python2..."]:::stage
-    base --> devel["devel\nshell config"]:::stage
-
-    bats-src --> test["test  ⚡ ephemeral\nsmoke tests, discarded after build"]:::ephemeral
-    bats-ext --> test
-    devel --> test
-
-    sys --> runtime-base["runtime-base\nsudo・tini"]:::stage
-    runtime-base --> runtime["runtime\n+ required ROS packages"]:::stage
-
-    classDef external fill:#555,color:#fff,stroke:#999
-    classDef tool fill:#8B6914,color:#fff,stroke:#c8960c
-    classDef stage fill:#1a5276,color:#fff,stroke:#2980b9
-    classDef ephemeral fill:#6e2c00,color:#fff,stroke:#e67e22,stroke-dasharray:5 5
-```
-
-### Stage Description
-
-| Stage | FROM | Purpose |
-|-------|------|---------|
-| `bats-src` | `bats/bats:latest` | Bats binary source, not shipped |
-| `bats-extensions` | `alpine:latest` | bats-support, bats-assert, not shipped |
-| `sys` | `osrf/ros:kinetic-desktop-full-xenial` | OS base: user/group, locale, timezone |
-| `base` | `sys` | Common dev tools (apt) |
-| `devel` | `base` | Full dev environment with shell config |
-| `test` | `devel` | Injects bats, runs smoke/, discarded after build |
-| `runtime-base` | `sys` | Minimal runtime base, no dev tools |
-| `runtime` | `runtime-base` | Adds required ROS packages |
-
-## Smoke Tests
+## Tests
 
 See [TEST.md](doc/test/TEST.md) for details.
 
 ## Directory Structure
 
-```text
-osrf_ros_kinetic/
-├── compose.yaml                 # Docker Compose definition
-├── Dockerfile                   # Multi-stage build
-├── build.sh                     # Build script (runs from any directory)
-├── run.sh                       # Run script (runs from any directory)
-├── exec.sh                      # Enter running container
-├── stop.sh                      # Stop running container
-├── .env.example                 # Environment variable template
-├── .hadolint.yaml               # Hadolint ignore rules
-├── script/
-│   └── entrypoint.sh            # Container entrypoint
-├── doc/
-│   ├── README.zh-TW.md          # Traditional Chinese
-│   ├── README.zh-CN.md          # Simplified Chinese
-│   └── README.ja.md             # Japanese
-├── .github/workflows/           # CI/CD
-│   ├── main.yaml                # Main pipeline
-│   ├── build-worker.yaml        # Docker build + smoke test
-│   └── release-worker.yaml      # GitHub Release
-├── test/smoke/             # Bats environment tests
-│   ├── ros_env.bats
-│   ├── script_help.bats
-│   └── test_helper.bash
-└── template/         # git subtree (v1.4.0)
-    └── src/
-        ├── setup.sh             # System detection + .env generation
-        └── config/              # shell/pip/terminator/tmux config
 ```
-
-## Updating template
-
-```bash
-git subtree pull --prefix=template \
-    https://github.com/ycpss91255-docker/template.git v1.4.0 --squash
+template/
+├── init.sh                           # Initialize repo (new or existing)
+├── upgrade.sh                        # Upgrade template subtree version
+├── script/
+│   ├── docker/                       # Docker operation scripts (symlinked by repos)
+│   │   ├── build.sh
+│   │   ├── run.sh
+│   │   ├── exec.sh
+│   │   ├── stop.sh
+│   │   ├── setup.sh                  # .env generator
+│   │   └── Makefile
+│   └── ci/
+│       └── ci.sh                     # CI pipeline (local + remote)
+├── dockerfile/
+│   ├── Dockerfile.test-tools         # Pre-built test tools image
+│   └── Dockerfile.example            # Dockerfile template for new repos
+├── config/                           # Shell/tool configs + IMAGE_NAME rules
+│   ├── image_name.conf               # Default IMAGE_NAME detection rules
+│   ├── pip/
+│   └── shell/
+│       ├── bashrc
+│       ├── terminator/
+│       └── tmux/
+├── test/
+│   ├── smoke/                        # Shared tests for repos
+│   │   ├── test_helper.bash
+│   │   ├── script_help.bats
+│   │   └── display_env.bats
+│   └── unit/                         # Template self-tests
+├── Makefile.ci                       # Template CI entry (make test/lint/...)
+├── compose.yaml                      # Docker CI runner
+├── .hadolint.yaml                    # Shared Hadolint rules
+├── .github/workflows/
+│   ├── self-test.yaml                # Template CI
+│   ├── build-worker.yaml             # Reusable build workflow
+│   └── release-worker.yaml           # Reusable release workflow
+├── doc/
+│   ├── readme/                       # README translations
+│   ├── test/                         # TEST.md
+│   └── changelog/                    # CHANGELOG.md
+├── .codecov.yaml
+├── .gitignore
+├── LICENSE
+└── README.md
 ```
